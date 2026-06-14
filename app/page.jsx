@@ -308,6 +308,17 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     await loadWorkspace();
   }
 
+  async function parsePdfDocument() {
+    if (!selectedDocument?.id) return;
+    const data = await api(`/api/documents/${selectedDocument.id}/parse`, {
+      method: 'POST'
+    });
+    setMessage('PDF 已重新解析并生成打卡段落');
+    setSelectedDocumentId(data.document.id);
+    setSelectedSegmentId(data.document.segments[0]?.id || '');
+    await loadWorkspace();
+  }
+
   async function createUser(event) {
     event.preventDefault();
     await api('/api/users', {
@@ -574,6 +585,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                       >
                         新建
                       </button>
+                      {selectedDocument?.sourceType === 'pdf' && (
+                        <button className="ghost-btn" type="button" onClick={parsePdfDocument}>重新解析 PDF</button>
+                      )}
                       <button className="danger-btn" type="button" onClick={deleteDocument}>删除</button>
                     </div>
                   </form>

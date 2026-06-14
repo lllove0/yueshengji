@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { PDFParse } from 'pdf-parse';
 import { createDocumentRecord, readDb, uploadPath, writeDb } from '../../../lib/db';
+import { extractPdfText } from '../../../lib/pdf';
 import { requireManager } from '../../../lib/auth';
 
 export const runtime = 'nodejs';
@@ -80,25 +80,4 @@ export async function POST(request) {
   });
   writeDb(db);
   return Response.json({ document }, { status: 201 });
-}
-
-async function extractPdfText(buffer) {
-  let parser;
-  try {
-    parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    return normalizePdfText(result.text);
-  } catch {
-    return '';
-  } finally {
-    await parser?.destroy();
-  }
-}
-
-function normalizePdfText(text) {
-  return String(text || '')
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
 }
