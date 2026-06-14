@@ -817,14 +817,17 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   </form>
                 </section>
 
-                <section className="panel-card">
-                  <h2>上传</h2>
-                  <form className="stack-form" onSubmit={uploadDocument}>
+                <section className="panel-card upload-card">
+                  <div className="compact-card-head">
+                    <h2>上传资源</h2>
+                    <span>TXT / MD / PDF / 图片</span>
+                  </div>
+                  <form className="upload-form" onSubmit={uploadDocument}>
                     <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
                     <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
                     <button className="primary-btn" type="submit">上传并生成</button>
                   </form>
-                  <p className="form-message">TXT/MD 自动读取文本；PDF 和图片会保存文件并生成待处理资源，后续可接 PDF 解析或 OCR。</p>
+                  <p className="form-message compact">文本会自动生成分段，PDF/图片先进入待处理。</p>
                 </section>
 
                 <section className="panel-card">

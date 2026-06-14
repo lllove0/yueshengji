@@ -451,8 +451,9 @@ button:disabled {
 
 .admin-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 1.3fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(360px, 1.45fr) minmax(280px, 0.75fr);
   gap: 12px;
+  align-items: start;
 }
 
 .panel-card {
@@ -461,6 +462,46 @@ button:disabled {
 
 .panel-card.wide {
   grid-row: span 2;
+}
+
+.upload-card {
+  padding: 12px;
+}
+
+.compact-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.compact-card-head h2 {
+  margin: 0;
+}
+
+.compact-card-head span {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.upload-form button {
+  grid-column: 1 / -1;
+}
+
+.form-message.compact {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .page-review-panel {
