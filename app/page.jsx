@@ -81,6 +81,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [users, setUsers] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
+  const [selectedPageId, setSelectedPageId] = useState('');
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeAdminSection, setActiveAdminSection] = useState(initialAdminSection);
   const [editor, setEditor] = useState(emptyEditor);
@@ -105,8 +106,11 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const canManage = user && ['admin', 'editor'].includes(user.role);
   const canAdmin = user?.role === 'admin';
   const selectedDocument = documents.find((document) => document.id === selectedDocumentId) || null;
-  const selectedSegment = selectedDocument?.segments.find((segment) => segment.id === selectedSegmentId)
-    || selectedDocument?.segments[0]
+  const selectedPages = normalizeDocumentPages(selectedDocument);
+  const selectedPage = selectedPages.find((page) => page.id === selectedPageId) || selectedPages[0] || null;
+  const visibleSegments = selectedPage?.blocks?.length ? selectedPage.blocks : selectedDocument?.segments || [];
+  const selectedSegment = visibleSegments.find((segment) => segment.id === selectedSegmentId)
+    || visibleSegments[0]
     || null;
 
   const checkedSegmentIds = useMemo(() => {
@@ -120,8 +124,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
 
   const todayCount = checkins.filter((item) => item.date === todayKey()).length;
   const streak = calculateStreak(checkins);
+  const totalSegmentCount = selectedDocument?.segments?.length || 0;
   const progress = selectedDocument
-    ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(selectedDocument.segments.length, 1)) * 100)
+    ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(totalSegmentCount, 1)) * 100)
     : 0;
   const needsReviewCount = documents.filter((document) => document.status === 'needs_review' || document.parseStatus === 'needs_review').length;
   const filteredDocuments = documents.filter((document) => {
@@ -182,8 +187,13 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       translation: selectedDocument.translation || '',
       chunkSize: selectedDocument.chunkSize || 260
     });
-    if (!selectedSegmentId && selectedDocument.segments[0]) {
-      setSelectedSegmentId(selectedDocument.segments[0].id);
+    const pages = normalizeDocumentPages(selectedDocument);
+    const activePage = pages.find((page) => page.id === selectedPageId) || pages[0];
+    if (!selectedPageId && activePage) {
+      setSelectedPageId(activePage.id);
+    }
+    if (!selectedSegmentId && activePage?.blocks?.[0]) {
+      setSelectedSegmentId(activePage.blocks[0].id);
     }
   }, [selectedDocumentId, documents]);
 
@@ -288,6 +298,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     setUsers([]);
     setSelectedDocumentId('');
     setSelectedSegmentId('');
+    setSelectedPageId('');
   }
 
   async function saveDocument(event) {
@@ -306,13 +317,15 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
         accessLevel: editor.accessLevel,
         priceCents: Number(editor.priceCents) || 0,
         content: editor.content,
+        pages: editor.id && selectedDocument?.content === editor.content ? selectedDocument.pages : [],
         translation: editor.translation,
         chunkSize: Number(editor.chunkSize) || 260
       }
     });
     setMessage('内容已保存并重新生成打卡段落');
     setSelectedDocumentId(data.document.id);
-    setSelectedSegmentId(data.document.segments[0]?.id || '');
+    setSelectedPageId(data.document.pages?.[0]?.id || 'page-1');
+    setSelectedSegmentId(data.document.pages?.[0]?.blocks?.[0]?.id || data.document.segments[0]?.id || '');
     await loadWorkspace();
   }
 
@@ -322,6 +335,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     setMessage('内容已删除');
     setSelectedDocumentId('');
     setSelectedSegmentId('');
+    setSelectedPageId('');
     await loadWorkspace();
   }
 
@@ -341,7 +355,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     form.reset();
     setMessage('上传完成，已生成阅读内容');
     setSelectedDocumentId(data.document.id);
-    setSelectedSegmentId(data.document.segments[0]?.id || '');
+    setSelectedPageId(data.document.pages?.[0]?.id || 'page-1');
+    setSelectedSegmentId(data.document.pages?.[0]?.blocks?.[0]?.id || data.document.segments[0]?.id || '');
     await loadWorkspace();
   }
 
@@ -352,7 +367,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     });
     setMessage('PDF 已重新解析并生成打卡段落');
     setSelectedDocumentId(data.document.id);
-    setSelectedSegmentId(data.document.segments[0]?.id || '');
+    setSelectedPageId(data.document.pages?.[0]?.id || 'page-1');
+    setSelectedSegmentId(data.document.pages?.[0]?.blocks?.[0]?.id || data.document.segments[0]?.id || '');
     await loadWorkspace();
   }
 
@@ -502,8 +518,10 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   className={`document-item ${document.id === selectedDocumentId ? 'active' : ''}`}
                   onClick={() => {
                     stopReading();
+                    const pages = normalizeDocumentPages(document);
                     setSelectedDocumentId(document.id);
-                    setSelectedSegmentId(document.segments[0]?.id || '');
+                    setSelectedPageId(pages[0]?.id || '');
+                    setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
                   }}
                 >
                   <strong>{document.title}</strong>
@@ -522,7 +540,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                 <h2>{selectedDocument?.title || '选择一篇内容'}</h2>
                 <p>
                   {selectedDocument
-                    ? `${languageLabel[selectedDocument.language]} · ${sourceTypeLabel[selectedDocument.sourceType] || '资源'} · ${statusLabel[selectedDocument.status] || '已发布'} · ${visibilityLabel[selectedDocument.visibility] || '登录可见'} · ${accessLevelLabel[selectedDocument.accessLevel] || '会员'} · ${formatPrice(selectedDocument.priceCents)} · ${selectedDocument.segments.length} 个打卡段落`
+                    ? `${languageLabel[selectedDocument.language]} · ${sourceTypeLabel[selectedDocument.sourceType] || '资源'} · ${statusLabel[selectedDocument.status] || '已发布'} · ${visibilityLabel[selectedDocument.visibility] || '登录可见'} · ${accessLevelLabel[selectedDocument.accessLevel] || '会员'} · ${formatPrice(selectedDocument.priceCents)} · ${selectedPages.length} 页 · ${totalSegmentCount} 个打卡段落`
                     : '上传文本、PDF 或图片，或在后台创建内容后开始阅读'}
                 </p>
               </div>
@@ -555,9 +573,36 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               </section>
             )}
 
+            {selectedPages.length > 1 && (
+              <div className="page-strip">
+                {selectedPages.map((page) => (
+                  <button
+                    key={page.id}
+                    className={page.id === selectedPage?.id ? 'active' : ''}
+                    type="button"
+                    onClick={() => {
+                      stopReading();
+                      setSelectedPageId(page.id);
+                      setSelectedSegmentId(page.blocks[0]?.id || '');
+                    }}
+                  >
+                    {page.pageNumber}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedPage && (
+              <div className="page-head">
+                <strong>{selectedPage.title || `第 ${selectedPage.pageNumber} 页`}</strong>
+                <span>{visibleSegments.length} 个文本块</span>
+              </div>
+            )}
+
             <div className="segment-list">
               {!selectedDocument && <p className="placeholder">暂无内容</p>}
-              {selectedDocument?.segments.map((segment, index) => {
+              {selectedDocument && !visibleSegments.length && <p className="placeholder">当前页暂无文本</p>}
+              {visibleSegments.map((segment, index) => {
                 const checked = checkedSegmentIds.get(selectedDocument.id)?.has(segment.id);
                 const active = selectedSegment?.id === segment.id;
                 return (
@@ -682,8 +727,10 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         type="button"
                         onClick={() => {
                           stopReading();
+                          const pages = normalizeDocumentPages(document);
                           setSelectedDocumentId(document.id);
-                          setSelectedSegmentId(document.segments[0]?.id || '');
+                          setSelectedPageId(pages[0]?.id || '');
+                          setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
                         }}
                       >
                         <strong>{document.title}</strong>
@@ -838,6 +885,31 @@ function UserRow({
       </button>
     </div>
   );
+}
+
+function normalizeDocumentPages(document) {
+  if (!document) return [];
+  if (Array.isArray(document.pages) && document.pages.length) {
+    return document.pages.map((page, pageIndex) => ({
+      ...page,
+      id: page.id || `page-${pageIndex + 1}`,
+      pageNumber: page.pageNumber || pageIndex + 1,
+      title: page.title || `第 ${page.pageNumber || pageIndex + 1} 页`,
+      blocks: Array.isArray(page.blocks) && page.blocks.length
+        ? page.blocks
+        : (document.segments || []).filter((segment) => segment.pageId === page.id || segment.pageNumber === page.pageNumber)
+    }));
+  }
+  return [
+    {
+      id: 'page-1',
+      pageNumber: 1,
+      title: '第 1 页',
+      text: document.content || '',
+      translation: document.translation || '',
+      blocks: document.segments || []
+    }
+  ];
 }
 
 function todayKey(date = new Date()) {

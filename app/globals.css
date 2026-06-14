@@ -272,6 +272,47 @@ button:disabled {
   margin: 12px 0;
 }
 
+.page-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.page-strip button {
+  min-width: 42px;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink-1);
+  font-weight: 850;
+}
+
+.page-strip button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--paper-2);
+}
+
+.page-head span {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .stat-item {
   padding: 12px;
   border: 1px solid var(--border);

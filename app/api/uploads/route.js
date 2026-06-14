@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createDocumentRecord, readDb, uploadPath, writeDb } from '../../../lib/db';
-import { extractPdfText } from '../../../lib/pdf';
+import { extractPdfPages } from '../../../lib/pdf';
 import { requireManager } from '../../../lib/auth';
 
 export const runtime = 'nodejs';
@@ -36,11 +36,13 @@ export async function POST(request) {
   let parseStatus = isText ? 'parsed' : 'needs_review';
   let description = isText ? '' : '已保存原始文件，等待自动解析或人工编辑。';
   let content = '';
+  let pages = [];
   if (isText) {
     content = buffer.toString('utf8');
   } else if (isPdf) {
-    content = await extractPdfText(buffer);
-    if (content) {
+    pages = await extractPdfPages(buffer);
+    content = pages.map((page) => page.text).join('\n\n');
+    if (pages.length) {
       parseStatus = 'parsed';
       description = '已自动抽取 PDF 文本，可在后台继续校对和编辑。';
     } else {
@@ -53,6 +55,7 @@ export async function POST(request) {
     title: title || originalName.replace(/\.[^.]+$/, ''),
     language: 'bilingual',
     content,
+    pages,
     translation: '',
     category: sourceType === 'image' ? '图片阅读' : '导入资源',
     description,
