@@ -364,12 +364,29 @@ button:disabled {
   font-size: 13px;
 }
 
-.source-preview iframe {
+.source-preview iframe,
+.source-preview object {
   width: 100%;
   height: min(72dvh, 760px);
   display: block;
   border: 0;
   background: #fff;
+}
+
+.admin-source-preview {
+  margin-top: 12px;
+}
+
+.source-preview-head a {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.source-preview object p {
+  padding: 18px;
+  color: var(--ink-2);
 }
 
 .source-preview img {

@@ -564,7 +564,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   <span>{selectedDocument?.fileName || selectedDocument?.title}</span>
                 </div>
                 {previewUrl && previewType === 'application/pdf' && (
-                  <iframe title="原始 PDF 预览" src={previewUrl} />
+                  <object title="原始 PDF 预览" data={previewUrl} type="application/pdf">
+                    <p>当前浏览器无法内嵌预览 PDF，请打开原文件查看。</p>
+                  </object>
                 )}
                 {previewUrl && previewType.startsWith('image/') && (
                   <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
@@ -639,6 +641,23 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               <div className="admin-grid">
                 <section className="panel-card wide">
                   <h2>资源编辑</h2>
+                  {(previewUrl || previewError) && (
+                    <section className="source-preview admin-source-preview">
+                      <div className="source-preview-head">
+                        <strong>原文件预览</strong>
+                        {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer">打开原文件</a>}
+                      </div>
+                      {previewUrl && previewType === 'application/pdf' && (
+                        <object title="后台 PDF 预览" data={previewUrl} type="application/pdf">
+                          <p>当前浏览器无法内嵌预览 PDF，请打开原文件查看。</p>
+                        </object>
+                      )}
+                      {previewUrl && previewType.startsWith('image/') && (
+                        <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
+                      )}
+                      {previewError && <p className="form-message">{previewError}</p>}
+                    </section>
+                  )}
                   <form className="stack-form" onSubmit={saveDocument}>
                     <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
                     <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
