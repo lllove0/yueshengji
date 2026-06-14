@@ -463,6 +463,78 @@ button:disabled {
   grid-row: span 2;
 }
 
+.page-review-panel {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--paper-2);
+}
+
+.page-review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-review-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.page-review-head span {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page-review-layout {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.38fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.page-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.page-review-list button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink-1);
+  text-align: left;
+}
+
+.page-review-list button.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.page-review-list strong,
+.page-review-list span {
+  display: block;
+}
+
+.page-review-list span {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.page-review-form textarea {
+  min-height: 110px;
+}
+
 .stack-form {
   display: flex;
   flex-direction: column;
@@ -671,7 +743,8 @@ textarea:focus {
 
   .manage-user-row,
   .user-create-form,
-  .data-row {
+  .data-row,
+  .page-review-layout {
     grid-template-columns: 1fr;
     align-items: stretch;
   }

@@ -50,6 +50,12 @@ const accountStatusLabel = {
   suspended: '停用'
 };
 
+const reviewStatusLabel = {
+  pending: '待校对',
+  reviewed: '已校对',
+  skipped: '跳过'
+};
+
 const adminNav = [
   { id: 'resources', label: '资源管理', href: '/admin/resources' },
   { id: 'users', label: '用户管理', href: '/admin/users', adminOnly: true },
@@ -102,6 +108,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewType, setPreviewType] = useState('');
   const [previewError, setPreviewError] = useState('');
+  const [pageEditor, setPageEditor] = useState({ id: '', text: '', translation: '', reviewStatus: 'pending' });
 
   const canManage = user && ['admin', 'editor'].includes(user.role);
   const canAdmin = user?.role === 'admin';
@@ -196,6 +203,19 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       setSelectedSegmentId(activePage.blocks[0].id);
     }
   }, [selectedDocumentId, documents]);
+
+  useEffect(() => {
+    if (!selectedPage) {
+      setPageEditor({ id: '', text: '', translation: '', reviewStatus: 'pending' });
+      return;
+    }
+    setPageEditor({
+      id: selectedPage.id,
+      text: selectedPage.text || '',
+      translation: selectedPage.translation || '',
+      reviewStatus: selectedPage.reviewStatus || 'pending'
+    });
+  }, [selectedPage?.id, selectedPage?.text, selectedPage?.translation, selectedPage?.reviewStatus]);
 
   useEffect(() => {
     let objectUrl = '';
@@ -369,6 +389,25 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     setSelectedDocumentId(data.document.id);
     setSelectedPageId(data.document.pages?.[0]?.id || 'page-1');
     setSelectedSegmentId(data.document.pages?.[0]?.blocks?.[0]?.id || data.document.segments[0]?.id || '');
+    await loadWorkspace();
+  }
+
+  async function savePageReview(event) {
+    event.preventDefault();
+    if (!selectedDocument?.id || !pageEditor.id) return;
+    const data = await api(`/api/documents/${selectedDocument.id}/pages/${pageEditor.id}`, {
+      method: 'PUT',
+      body: {
+        text: pageEditor.text,
+        translation: pageEditor.translation,
+        reviewStatus: pageEditor.reviewStatus
+      }
+    });
+    setMessage('页面已保存并重新生成分段');
+    setSelectedDocumentId(data.document.id);
+    setSelectedPageId(pageEditor.id);
+    const nextPage = data.document.pages?.find((page) => page.id === pageEditor.id);
+    setSelectedSegmentId(nextPage?.blocks?.[0]?.id || data.document.segments[0]?.id || '');
     await loadWorkspace();
   }
 
@@ -658,6 +697,42 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
                       )}
                       {previewError && <p className="form-message">{previewError}</p>}
+                    </section>
+                  )}
+                  {selectedDocument && (
+                    <section className="page-review-panel">
+                      <div className="page-review-head">
+                        <h3>页面校对</h3>
+                        <span>{selectedPages.length} 页</span>
+                      </div>
+                      <div className="page-review-layout">
+                        <div className="page-review-list">
+                          {selectedPages.map((page) => (
+                            <button
+                              key={page.id}
+                              type="button"
+                              className={page.id === selectedPage?.id ? 'active' : ''}
+                              onClick={() => {
+                                setSelectedPageId(page.id);
+                                setSelectedSegmentId(page.blocks?.[0]?.id || '');
+                              }}
+                            >
+                              <strong>第 {page.pageNumber} 页</strong>
+                              <span>{reviewStatusLabel[page.reviewStatus] || '待校对'} · {page.blocks?.length || 0} 段</span>
+                            </button>
+                          ))}
+                        </div>
+                        <form className="stack-form page-review-form" onSubmit={savePageReview}>
+                          <label>校对状态<select value={pageEditor.reviewStatus} onChange={(event) => setPageEditor({ ...pageEditor, reviewStatus: event.target.value })}>
+                            <option value="pending">待校对</option>
+                            <option value="reviewed">已校对</option>
+                            <option value="skipped">跳过</option>
+                          </select></label>
+                          <label>本页文本<textarea rows={8} value={pageEditor.text} onChange={(event) => setPageEditor({ ...pageEditor, text: event.target.value })} /></label>
+                          <label>本页译文 / 注释<textarea rows={5} value={pageEditor.translation} onChange={(event) => setPageEditor({ ...pageEditor, translation: event.target.value })} /></label>
+                          <button className="primary-btn" type="submit">保存本页并重建分段</button>
+                        </form>
+                      </div>
                     </section>
                   )}
                   <form className="stack-form" onSubmit={saveDocument}>
