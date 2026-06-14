@@ -178,7 +178,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   }, [canAdmin, activeAdminSection]);
 
   useEffect(() => {
-    if (activeAdminSection !== 'review' || !documents.length) return;
+    if (!['review', 'resourceForm'].includes(activeAdminSection) || !documents.length) return;
     const documentId = new URLSearchParams(window.location.search).get('document');
     if (documentId && documents.some((document) => document.id === documentId)) {
       setSelectedDocumentId(documentId);
@@ -294,7 +294,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     ]);
     setDocuments(documentData.documents);
     setCheckins(checkinData.checkins);
-    setSelectedDocumentId((previous) => previous || documentData.documents[0]?.id || '');
+    setSelectedDocumentId((previous) => previous || (activeAdminSection === 'resourceForm' ? '' : documentData.documents[0]?.id || ''));
     if (currentUser?.role === 'admin') {
       const userData = await api('/api/users', {}, nextToken);
       setUsers(userData.users);
@@ -577,7 +577,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               {adminNav.filter((item) => !item.adminOnly || canAdmin).map((item) => (
                 <a
                   key={item.id}
-                  className={activeAdminSection === item.id ? 'active' : ''}
+                  className={activeAdminSection === item.id || (item.id === 'resources' && activeAdminSection === 'resourceForm') ? 'active' : ''}
                   href={item.href}
                   onClick={() => setActiveAdminSection(item.id)}
                 >
@@ -712,23 +712,13 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
           <section className="admin-panel">
             {activeAdminSection === 'resources' && (
               <div className="resource-admin-stack">
-                <section className="panel-card upload-card">
-                  <div className="compact-card-head">
-                    <h2>上传资源</h2>
-                    <span>TXT / MD / PDF / 图片</span>
-                  </div>
-                  <form className="upload-form" onSubmit={uploadDocument}>
-                    <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
-                    <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
-                    <button className="primary-btn" type="submit">上传并生成</button>
-                  </form>
-                  <p className="form-message compact">文本会自动生成分段，PDF/图片先进入待处理。</p>
-                </section>
-
-                <section className="panel-card">
+                <section className="panel-card resource-list-panel">
                   <div className="compact-card-head">
                     <h2>资源列表</h2>
-                    <span>{filteredDocuments.length} / {documents.length}</span>
+                    <div className="head-actions">
+                      <span>{filteredDocuments.length} / {documents.length}</span>
+                      <a className="primary-link compact-action" href="/admin/resources/new">上传资源</a>
+                    </div>
                   </div>
                   <div className="resource-filters">
                     <label>搜索<input value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="标题、分类、文件名" /></label>
@@ -769,18 +759,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         <span>{accessLevelLabel[document.accessLevel] || '会员'} · {formatPrice(document.priceCents)}</span>
                         <span>{document.segments?.length || 0}</span>
                         <span className="table-actions">
-                          <button
-                            className="ghost-btn"
-                            type="button"
-                            onClick={() => {
-                              const pages = normalizeDocumentPages(document);
-                              setSelectedDocumentId(document.id);
-                              setSelectedPageId(pages[0]?.id || '');
-                              setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
-                            }}
-                          >
-                            编辑
-                          </button>
+                          <a className="ghost-link compact-action" href={`/admin/resources/new?document=${document.id}`}>编辑</a>
                           <a className="ghost-link compact-action" href={`/admin/review?document=${document.id}`}>校对</a>
                         </span>
                       </div>
@@ -788,9 +767,29 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     {!filteredDocuments.length && <p className="placeholder compact">没有匹配的资源</p>}
                   </div>
                 </section>
+              </div>
+            )}
+
+            {activeAdminSection === 'resourceForm' && (
+              <div className="resource-form-grid">
+                <section className="panel-card upload-card">
+                  <div className="compact-card-head">
+                    <h2>上传资源</h2>
+                    <span>TXT / MD / PDF / 图片</span>
+                  </div>
+                  <form className="upload-form" onSubmit={uploadDocument}>
+                    <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
+                    <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
+                    <button className="primary-btn" type="submit">上传并生成</button>
+                  </form>
+                  <p className="form-message compact">上传后可以在右侧补充分类、发布状态、访问级别和价格。</p>
+                </section>
 
                 <section className="panel-card resource-meta-panel">
-                  <h2>资源信息</h2>
+                  <div className="compact-card-head">
+                    <h2>资源信息</h2>
+                    <a className="ghost-link compact-action" href="/admin/resources">返回列表</a>
+                  </div>
                   <form className="stack-form" onSubmit={saveDocument}>
                     <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
                     <div className="form-grid">

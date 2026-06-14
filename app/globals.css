@@ -117,7 +117,8 @@ button:disabled {
   font-weight: 700;
 }
 
-.ghost-link {
+.ghost-link,
+.primary-link {
   min-height: 38px;
   display: inline-flex;
   align-items: center;
@@ -128,6 +129,12 @@ button:disabled {
   color: var(--ink-1);
   font-weight: 750;
   text-decoration: none;
+}
+
+.primary-link {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .workspace {
@@ -444,19 +451,26 @@ button:disabled {
 
 .resource-admin-stack {
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(320px, 0.58fr);
   gap: 12px;
   align-items: start;
 }
 
-.resource-admin-stack .upload-card,
-.resource-admin-stack .resource-meta-panel {
-  grid-column: 2;
+.resource-list-panel {
+  min-width: 0;
 }
 
-.resource-admin-stack > .panel-card:nth-child(2) {
-  grid-column: 1;
-  grid-row: 1 / span 2;
+.resource-form-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.38fr) minmax(460px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.head-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .review-admin-grid {
@@ -847,15 +861,9 @@ textarea:focus {
 
   .workspace,
   .resource-admin-stack,
+  .resource-form-grid,
   .review-admin-grid {
     grid-template-columns: 1fr;
-  }
-
-  .resource-admin-stack .upload-card,
-  .resource-admin-stack .resource-meta-panel,
-  .resource-admin-stack > .panel-card:nth-child(2) {
-    grid-column: auto;
-    grid-row: auto;
   }
 
   .reader-head,
