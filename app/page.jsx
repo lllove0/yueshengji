@@ -109,6 +109,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [previewType, setPreviewType] = useState('');
   const [previewError, setPreviewError] = useState('');
   const [pageEditor, setPageEditor] = useState({ id: '', text: '', translation: '', reviewStatus: 'pending' });
+  const [userBusyId, setUserBusyId] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
 
   const canManage = user && ['admin', 'editor'].includes(user.role);
   const canAdmin = user?.role === 'admin';
@@ -413,37 +415,65 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
 
   async function createUser(event) {
     event.preventDefault();
-    await api('/api/users', {
-      method: 'POST',
-      body: newUser
-    });
-    setNewUser({
-      username: '',
-      password: '',
-      role: 'reader',
-      plan: 'free',
-      accountStatus: 'active',
-      subscriptionEndsAt: ''
-    });
-    const userData = await api('/api/users');
-    setUsers(userData.users);
-    setMessage('用户已创建');
+    setCreatingUser(true);
+    setMessage('');
+    try {
+      await api('/api/users', {
+        method: 'POST',
+        body: newUser
+      });
+      setNewUser({
+        username: '',
+        password: '',
+        role: 'reader',
+        plan: 'free',
+        accountStatus: 'active',
+        subscriptionEndsAt: ''
+      });
+      const userData = await api('/api/users');
+      setUsers(userData.users);
+      setMessage('用户已创建');
+    } catch (error) {
+      setMessage(`用户创建失败：${error.message}`);
+    } finally {
+      setCreatingUser(false);
+    }
   }
 
   async function updateUser(targetUser, patch) {
-    const data = await api(`/api/users/${targetUser.id}`, {
-      method: 'PUT',
-      body: patch
-    });
-    setUsers((current) => current.map((item) => item.id === data.user.id ? data.user : item));
-    setMessage('用户已更新');
+    setUserBusyId(targetUser.id);
+    setMessage('');
+    try {
+      const data = await api(`/api/users/${targetUser.id}`, {
+        method: 'PUT',
+        body: patch
+      });
+      setUsers((current) => current.map((item) => item.id === data.user.id ? data.user : item));
+      if (targetUser.id === user?.id) {
+        setUser(data.user);
+      }
+      setMessage('用户已更新');
+    } catch (error) {
+      setMessage(`用户更新失败：${error.message}`);
+    } finally {
+      setUserBusyId('');
+    }
   }
 
   async function deleteUser(targetUser) {
-    await api(`/api/users/${targetUser.id}`, { method: 'DELETE' });
-    setUsers((current) => current.filter((item) => item.id !== targetUser.id));
-    setCheckins((current) => current.filter((item) => item.userId !== targetUser.id));
-    setMessage('用户已删除');
+    if (!window.confirm(`确定删除用户「${targetUser.username}」吗？相关打卡记录也会一起删除。`)) return;
+    setUserBusyId(targetUser.id);
+    setMessage('');
+    try {
+      await api(`/api/users/${targetUser.id}`, { method: 'DELETE' });
+      setUsers((current) => current.filter((item) => item.id !== targetUser.id));
+      setCheckins((current) => current.filter((item) => item.userId !== targetUser.id));
+      setMessage('用户已删除');
+    } catch (error) {
+      setMessage(`用户删除失败：${error.message}`);
+    } finally {
+      setUserBusyId('');
+    }
   }
 
   async function toggleCheckin() {
@@ -860,13 +890,17 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <option value="suspended">停用</option>
                   </select></label>
                   <label>到期日<input type="date" value={newUser.subscriptionEndsAt} onChange={(event) => setNewUser({ ...newUser, subscriptionEndsAt: event.target.value })} /></label>
-                  <button className="primary-btn" type="submit">创建用户</button>
+                  <button className="primary-btn" type="submit" disabled={creatingUser}>
+                    {creatingUser ? '创建中...' : '创建用户'}
+                  </button>
                 </form>
                 <div className="user-list">
                   {users.map((item) => (
                     <UserRow
                       key={item.id}
                       currentUserId={user.id}
+                      adminCount={users.filter((target) => target.role === 'admin').length}
+                      disabled={userBusyId === item.id}
                       user={item}
                       onRoleChange={(role) => updateUser(item, { role })}
                       onPlanChange={(plan) => updateUser(item, { plan })}
@@ -923,6 +957,8 @@ function Stat({ label, value }) {
 
 function UserRow({
   currentUserId,
+  adminCount,
+  disabled,
   user,
   onRoleChange,
   onPlanChange,
@@ -933,24 +969,36 @@ function UserRow({
 }) {
   const [password, setPassword] = useState('');
   const isCurrentUser = currentUserId === user.id;
+  const isOnlyAdmin = user.role === 'admin' && adminCount <= 1;
+  const canChangeRole = !disabled && !isCurrentUser && !isOnlyAdmin;
+  const canDelete = !disabled && !isCurrentUser && !isOnlyAdmin;
 
   return (
     <div className="user-row manage-user-row">
       <div>
         <strong>{user.username}</strong>
-        <small>{isCurrentUser ? '当前登录账号' : `${planLabel[user.plan] || '免费版'} · ${accountStatusLabel[user.accountStatus] || '正常'}`}</small>
+        <small>
+          {isCurrentUser
+            ? '当前登录账号'
+            : `${planLabel[user.plan] || '免费版'} · ${accountStatusLabel[user.accountStatus] || '正常'}`}
+          {isOnlyAdmin && !isCurrentUser ? ' · 唯一管理员' : ''}
+        </small>
       </div>
-      <select value={user.role} onChange={(event) => onRoleChange(event.target.value)}>
+      <select value={user.role} onChange={(event) => onRoleChange(event.target.value)} disabled={!canChangeRole}>
         <option value="reader">普通用户</option>
         <option value="editor">编辑</option>
         <option value="admin">管理员</option>
       </select>
-      <select value={user.plan || 'free'} onChange={(event) => onPlanChange(event.target.value)}>
+      <select value={user.plan || 'free'} onChange={(event) => onPlanChange(event.target.value)} disabled={disabled}>
         <option value="free">免费版</option>
         <option value="pro">专业版</option>
         <option value="team">团队版</option>
       </select>
-      <select value={user.accountStatus || 'active'} onChange={(event) => onStatusChange(event.target.value)}>
+      <select
+        value={user.accountStatus || 'active'}
+        onChange={(event) => onStatusChange(event.target.value)}
+        disabled={disabled || isCurrentUser}
+      >
         <option value="active">正常</option>
         <option value="suspended">停用</option>
       </select>
@@ -958,25 +1006,28 @@ function UserRow({
         type="date"
         value={user.subscriptionEndsAt || ''}
         onChange={(event) => onSubscriptionChange(event.target.value)}
+        disabled={disabled}
       />
       <input
         type="password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         placeholder="新密码"
+        disabled={disabled}
       />
       <button
         className="ghost-btn"
         type="button"
+        disabled={disabled || !password}
         onClick={() => {
           if (!password) return;
           onPasswordReset(password);
           setPassword('');
         }}
       >
-        重置密码
+        {disabled ? '处理中' : '重置密码'}
       </button>
-      <button className="danger-btn" type="button" onClick={onDelete} disabled={isCurrentUser}>
+      <button className="danger-btn" type="button" onClick={onDelete} disabled={!canDelete}>
         删除
       </button>
     </div>
