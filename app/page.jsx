@@ -58,6 +58,7 @@ const reviewStatusLabel = {
 
 const adminNav = [
   { id: 'resources', label: '资源管理', href: '/admin/resources' },
+  { id: 'review', label: '内容校对', href: '/admin/review' },
   { id: 'users', label: '用户管理', href: '/admin/users', adminOnly: true },
   { id: 'checkins', label: '打卡记录', href: '/admin/checkins' }
 ];
@@ -175,6 +176,14 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       setActiveAdminSection('resources');
     }
   }, [canAdmin, activeAdminSection]);
+
+  useEffect(() => {
+    if (activeAdminSection !== 'review' || !documents.length) return;
+    const documentId = new URLSearchParams(window.location.search).get('document');
+    if (documentId && documents.some((document) => document.id === documentId)) {
+      setSelectedDocumentId(documentId);
+    }
+  }, [activeAdminSection, documents]);
 
   useEffect(() => {
     if (!selectedDocument) {
@@ -702,70 +711,94 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
         {activeTab === 'admin' && canManage && (
           <section className="admin-panel">
             {activeAdminSection === 'resources' && (
-              <div className="admin-grid">
-                <section className="panel-card wide">
-                  <h2>资源编辑</h2>
-                  {(previewUrl || previewError) && (
-                    <section className="source-preview admin-source-preview">
-                      <div className="source-preview-head">
-                        <strong>原文件预览</strong>
-                        {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer">打开原文件</a>}
+              <div className="resource-admin-stack">
+                <section className="panel-card upload-card">
+                  <div className="compact-card-head">
+                    <h2>上传资源</h2>
+                    <span>TXT / MD / PDF / 图片</span>
+                  </div>
+                  <form className="upload-form" onSubmit={uploadDocument}>
+                    <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
+                    <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
+                    <button className="primary-btn" type="submit">上传并生成</button>
+                  </form>
+                  <p className="form-message compact">文本会自动生成分段，PDF/图片先进入待处理。</p>
+                </section>
+
+                <section className="panel-card">
+                  <div className="compact-card-head">
+                    <h2>资源列表</h2>
+                    <span>{filteredDocuments.length} / {documents.length}</span>
+                  </div>
+                  <div className="resource-filters">
+                    <label>搜索<input value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="标题、分类、文件名" /></label>
+                    <label>状态<select value={resourceStatus} onChange={(event) => setResourceStatus(event.target.value)}>
+                      <option value="all">全部状态</option>
+                      <option value="published">已发布</option>
+                      <option value="draft">草稿</option>
+                      <option value="needs_review">待处理</option>
+                      <option value="archived">已归档</option>
+                    </select></label>
+                    <label>类型<select value={resourceSourceType} onChange={(event) => setResourceSourceType(event.target.value)}>
+                      <option value="all">全部类型</option>
+                      <option value="text">文本</option>
+                      <option value="pdf">PDF</option>
+                      <option value="image">图片</option>
+                    </select></label>
+                  </div>
+                  <div className="resource-table">
+                    <div className="resource-table-row resource-table-head">
+                      <span>资源</span>
+                      <span>类型</span>
+                      <span>状态</span>
+                      <span>访问</span>
+                      <span>分段</span>
+                      <span>操作</span>
+                    </div>
+                    {filteredDocuments.map((document) => (
+                      <div
+                        className={`resource-table-row ${document.id === selectedDocumentId ? 'active' : ''}`}
+                        key={document.id}
+                      >
+                        <span>
+                          <strong>{document.title}</strong>
+                          <small>{document.category || '未分类'} · {document.fileName || '手动内容'}</small>
+                        </span>
+                        <span>{sourceTypeLabel[document.sourceType] || '文本'}</span>
+                        <span>{statusLabel[document.status] || '已发布'}</span>
+                        <span>{accessLevelLabel[document.accessLevel] || '会员'} · {formatPrice(document.priceCents)}</span>
+                        <span>{document.segments?.length || 0}</span>
+                        <span className="table-actions">
+                          <button
+                            className="ghost-btn"
+                            type="button"
+                            onClick={() => {
+                              const pages = normalizeDocumentPages(document);
+                              setSelectedDocumentId(document.id);
+                              setSelectedPageId(pages[0]?.id || '');
+                              setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
+                            }}
+                          >
+                            编辑
+                          </button>
+                          <a className="ghost-link compact-action" href={`/admin/review?document=${document.id}`}>校对</a>
+                        </span>
                       </div>
-                      {previewUrl && previewType === 'application/pdf' && (
-                        <object title="后台 PDF 预览" data={previewUrl} type="application/pdf">
-                          <p>当前浏览器无法内嵌预览 PDF，请打开原文件查看。</p>
-                        </object>
-                      )}
-                      {previewUrl && previewType.startsWith('image/') && (
-                        <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
-                      )}
-                      {previewError && <p className="form-message">{previewError}</p>}
-                    </section>
-                  )}
-                  {selectedDocument && (
-                    <section className="page-review-panel">
-                      <div className="page-review-head">
-                        <h3>页面校对</h3>
-                        <span>{selectedPages.length} 页</span>
-                      </div>
-                      <div className="page-review-layout">
-                        <div className="page-review-list">
-                          {selectedPages.map((page) => (
-                            <button
-                              key={page.id}
-                              type="button"
-                              className={page.id === selectedPage?.id ? 'active' : ''}
-                              onClick={() => {
-                                setSelectedPageId(page.id);
-                                setSelectedSegmentId(page.blocks?.[0]?.id || '');
-                              }}
-                            >
-                              <strong>第 {page.pageNumber} 页</strong>
-                              <span>{reviewStatusLabel[page.reviewStatus] || '待校对'} · {page.blocks?.length || 0} 段</span>
-                            </button>
-                          ))}
-                        </div>
-                        <form className="stack-form page-review-form" onSubmit={savePageReview}>
-                          <label>校对状态<select value={pageEditor.reviewStatus} onChange={(event) => setPageEditor({ ...pageEditor, reviewStatus: event.target.value })}>
-                            <option value="pending">待校对</option>
-                            <option value="reviewed">已校对</option>
-                            <option value="skipped">跳过</option>
-                          </select></label>
-                          <label>本页文本<textarea rows={8} value={pageEditor.text} onChange={(event) => setPageEditor({ ...pageEditor, text: event.target.value })} /></label>
-                          <label>本页译文 / 注释<textarea rows={5} value={pageEditor.translation} onChange={(event) => setPageEditor({ ...pageEditor, translation: event.target.value })} /></label>
-                          <button className="primary-btn" type="submit">保存本页并重建分段</button>
-                        </form>
-                      </div>
-                    </section>
-                  )}
+                    ))}
+                    {!filteredDocuments.length && <p className="placeholder compact">没有匹配的资源</p>}
+                  </div>
+                </section>
+
+                <section className="panel-card resource-meta-panel">
+                  <h2>资源信息</h2>
                   <form className="stack-form" onSubmit={saveDocument}>
                     <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
-                    <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
-                      <option value="bilingual">中英文</option>
-                      <option value="zh">中文</option>
-                      <option value="en">英文</option>
-                    </select></label>
                     <div className="form-grid">
+                      <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
+                        <option value="bilingual">中英文</option>
+                        <option value="zh">中文</option>
+                        <option value="en">英文</option>
+                      </select></label>
                       <label>分类<input value={editor.category} onChange={(event) => setEditor({ ...editor, category: event.target.value })} /></label>
                       <label>状态<select value={editor.status} onChange={(event) => setEditor({ ...editor, status: event.target.value })}>
                         <option value="published">已发布</option>
@@ -787,44 +820,26 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                       <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
                     </div>
                     <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
-                    <label>原文<textarea rows={11} value={editor.content} onChange={(event) => setEditor({ ...editor, content: event.target.value })} required /></label>
-                    <label>译文 / 注释<textarea rows={7} value={editor.translation} onChange={(event) => setEditor({ ...editor, translation: event.target.value })} /></label>
                     <div className="button-row">
-                      <button className="primary-btn" type="submit">保存并生成打卡</button>
-                      <button
-                        className="ghost-btn"
-                        type="button"
-                        onClick={() => {
-                          setEditor(emptyEditor);
-                          setSelectedDocumentId('');
-                          setSelectedSegmentId('');
-                        }}
-                      >
-                        新建
-                      </button>
+                      <button className="primary-btn" type="submit" disabled={!editor.id}>保存资源信息</button>
+                      <a className="ghost-link compact-action" href={editor.id ? `/admin/review?document=${editor.id}` : '/admin/review'}>进入校对</a>
                       {selectedDocument?.sourceType === 'pdf' && (
                         <button className="ghost-btn" type="button" onClick={parsePdfDocument}>重新解析 PDF</button>
                       )}
-                      <button className="danger-btn" type="button" onClick={deleteDocument}>删除</button>
+                      <button className="danger-btn" type="button" onClick={deleteDocument} disabled={!editor.id}>删除</button>
                     </div>
                   </form>
                 </section>
+              </div>
+            )}
 
-                <section className="panel-card upload-card">
+            {activeAdminSection === 'review' && (
+              <div className="review-admin-grid">
+                <section className="panel-card review-resource-panel">
                   <div className="compact-card-head">
-                    <h2>上传资源</h2>
-                    <span>TXT / MD / PDF / 图片</span>
+                    <h2>待校对资源</h2>
+                    <span>{filteredDocuments.length} 个资源</span>
                   </div>
-                  <form className="upload-form" onSubmit={uploadDocument}>
-                    <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
-                    <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
-                    <button className="primary-btn" type="submit">上传并生成</button>
-                  </form>
-                  <p className="form-message compact">文本会自动生成分段，PDF/图片先进入待处理。</p>
-                </section>
-
-                <section className="panel-card">
-                  <h2>资源库</h2>
                   <div className="resource-filters">
                     <label>搜索<input value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="标题、分类、文件名" /></label>
                     <label>状态<select value={resourceStatus} onChange={(event) => setResourceStatus(event.target.value)}>
@@ -841,26 +856,94 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                       <option value="image">图片</option>
                     </select></label>
                   </div>
-                  <div className="resource-list">
-                    {filteredDocuments.map((document) => (
-                      <button
-                        className={`resource-row ${document.id === selectedDocumentId ? 'active' : ''}`}
-                        key={document.id}
-                        type="button"
-                        onClick={() => {
-                          stopReading();
-                          const pages = normalizeDocumentPages(document);
-                          setSelectedDocumentId(document.id);
-                          setSelectedPageId(pages[0]?.id || '');
-                          setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
-                        }}
-                      >
-                        <strong>{document.title}</strong>
-                        <span>{document.category || '未分类'} · {sourceTypeLabel[document.sourceType] || '文本'} · {statusLabel[document.status] || '已发布'} · {accessLevelLabel[document.accessLevel] || '会员'} · {formatPrice(document.priceCents)}</span>
-                      </button>
-                    ))}
+                  <div className="resource-list review-resource-list">
+                    {filteredDocuments.map((document) => {
+                      const pages = normalizeDocumentPages(document);
+                      const pendingCount = pages.filter((page) => (page.reviewStatus || 'pending') === 'pending').length;
+                      return (
+                        <button
+                          className={`resource-row ${document.id === selectedDocumentId ? 'active' : ''}`}
+                          key={document.id}
+                          type="button"
+                          onClick={() => {
+                            stopReading();
+                            setSelectedDocumentId(document.id);
+                            setSelectedPageId(pages[0]?.id || '');
+                            setSelectedSegmentId(pages[0]?.blocks?.[0]?.id || document.segments[0]?.id || '');
+                          }}
+                        >
+                          <strong>{document.title}</strong>
+                          <span>{statusLabel[document.status] || '已发布'} · {pages.length} 页 · 待校对 {pendingCount}</span>
+                        </button>
+                      );
+                    })}
                     {!filteredDocuments.length && <p className="placeholder compact">没有匹配的资源</p>}
                   </div>
+                </section>
+
+                <section className="panel-card review-workbench">
+                  <h2>校对工作台</h2>
+                  {!selectedDocument && <p className="placeholder compact">请选择一个资源开始校对</p>}
+                  {selectedDocument && (
+                    <>
+                      {(previewUrl || previewError) && (
+                        <section className="source-preview admin-source-preview">
+                          <div className="source-preview-head">
+                            <strong>原文件预览</strong>
+                            {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer">打开原文件</a>}
+                          </div>
+                          {previewUrl && previewType === 'application/pdf' && (
+                            <object title="后台 PDF 预览" data={previewUrl} type="application/pdf">
+                              <p>当前浏览器无法内嵌预览 PDF，请打开原文件查看。</p>
+                            </object>
+                          )}
+                          {previewUrl && previewType.startsWith('image/') && (
+                            <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
+                          )}
+                          {previewError && <p className="form-message">{previewError}</p>}
+                        </section>
+                      )}
+                      <section className="page-review-panel">
+                        <div className="page-review-head">
+                          <h3>页面校对</h3>
+                          <span>{selectedPages.length} 页</span>
+                        </div>
+                        <div className="page-review-layout">
+                          <div className="page-review-list">
+                            {selectedPages.map((page) => (
+                              <button
+                                key={page.id}
+                                type="button"
+                                className={page.id === selectedPage?.id ? 'active' : ''}
+                                onClick={() => {
+                                  setSelectedPageId(page.id);
+                                  setSelectedSegmentId(page.blocks?.[0]?.id || '');
+                                }}
+                              >
+                                <strong>第 {page.pageNumber} 页</strong>
+                                <span>{reviewStatusLabel[page.reviewStatus] || '待校对'} · {page.blocks?.length || 0} 段</span>
+                              </button>
+                            ))}
+                          </div>
+                          <form className="stack-form page-review-form" onSubmit={savePageReview}>
+                            <label>校对状态<select value={pageEditor.reviewStatus} onChange={(event) => setPageEditor({ ...pageEditor, reviewStatus: event.target.value })}>
+                              <option value="pending">待校对</option>
+                              <option value="reviewed">已校对</option>
+                              <option value="skipped">跳过</option>
+                            </select></label>
+                            <label>本页文本<textarea rows={8} value={pageEditor.text} onChange={(event) => setPageEditor({ ...pageEditor, text: event.target.value })} /></label>
+                            <label>本页译文 / 注释<textarea rows={5} value={pageEditor.translation} onChange={(event) => setPageEditor({ ...pageEditor, translation: event.target.value })} /></label>
+                            <div className="button-row">
+                              <button className="primary-btn" type="submit">保存本页并重建分段</button>
+                              {selectedDocument?.sourceType === 'pdf' && (
+                                <button className="ghost-btn" type="button" onClick={parsePdfDocument}>重新解析 PDF</button>
+                              )}
+                            </div>
+                          </form>
+                        </div>
+                      </section>
+                    </>
+                  )}
                 </section>
               </div>
             )}

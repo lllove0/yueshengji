@@ -442,11 +442,38 @@ button:disabled {
   padding: 14px;
 }
 
-.admin-grid {
+.resource-admin-stack {
   display: grid;
-  grid-template-columns: minmax(360px, 1.45fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 0.58fr);
   gap: 12px;
   align-items: start;
+}
+
+.resource-admin-stack .upload-card,
+.resource-admin-stack .resource-meta-panel {
+  grid-column: 2;
+}
+
+.resource-admin-stack > .panel-card:nth-child(2) {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.review-admin-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.32fr) minmax(520px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.review-resource-panel,
+.review-workbench {
+  min-width: 0;
+}
+
+.review-resource-list {
+  max-height: calc(100dvh - 250px);
+  overflow-y: auto;
 }
 
 .panel-card {
@@ -616,6 +643,61 @@ button:disabled {
   margin-top: 12px;
 }
 
+.resource-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.resource-table-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) 80px 90px minmax(120px, 0.8fr) 72px minmax(150px, 0.8fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper-2);
+}
+
+.resource-table-row.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.resource-table-head {
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.resource-table-row strong,
+.resource-table-row small {
+  display: block;
+}
+
+.resource-table-row small {
+  margin-top: 3px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.compact-action {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .resource-row {
   width: 100%;
   padding: 10px 12px;
@@ -764,8 +846,16 @@ textarea:focus {
   }
 
   .workspace,
-  .admin-grid {
+  .resource-admin-stack,
+  .review-admin-grid {
     grid-template-columns: 1fr;
+  }
+
+  .resource-admin-stack .upload-card,
+  .resource-admin-stack .resource-meta-panel,
+  .resource-admin-stack > .panel-card:nth-child(2) {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .reader-head,
@@ -781,9 +871,14 @@ textarea:focus {
   .manage-user-row,
   .user-create-form,
   .data-row,
+  .resource-table-row,
   .page-review-layout {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .table-actions {
+    justify-content: flex-start;
   }
 }
 
