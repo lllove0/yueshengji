@@ -473,7 +473,7 @@ button:disabled {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .compact-card-head h2 {
@@ -489,17 +489,21 @@ button:disabled {
 
 .upload-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 8px;
   align-items: end;
 }
 
-.upload-form button {
+.upload-form label:first-child {
   grid-column: 1 / -1;
 }
 
+.upload-form input {
+  min-height: 38px;
+}
+
 .form-message.compact {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 12px;
   line-height: 1.45;
 }
