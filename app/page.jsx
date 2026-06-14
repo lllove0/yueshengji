@@ -112,6 +112,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [previewType, setPreviewType] = useState('');
   const [previewError, setPreviewError] = useState('');
   const [pageEditor, setPageEditor] = useState({ id: '', text: '', translation: '', reviewStatus: 'pending' });
+  const [pdfViewerNonce, setPdfViewerNonce] = useState(0);
   const [userBusyId, setUserBusyId] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -123,6 +124,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const selectedPageIndex = selectedPage ? selectedPages.findIndex((page) => page.id === selectedPage.id) : -1;
   const spreadStartIndex = selectedPageIndex <= 0 ? 0 : selectedPageIndex % 2 === 0 ? selectedPageIndex : selectedPageIndex - 1;
   const spreadStartPage = selectedPages[spreadStartIndex] || selectedPage;
+  const pdfPreviewUrl = previewUrl && previewType === 'application/pdf'
+    ? `${previewUrl}#page=${spreadStartPage?.pageNumber || 1}&zoom=page-fit&view=FitH&spreadMode=1&reload=${pdfViewerNonce}`
+    : '';
   const visibleSegments = selectedPage?.blocks?.length ? selectedPage.blocks : selectedDocument?.segments || [];
   const selectedSegment = visibleSegments.find((segment) => segment.id === selectedSegmentId)
     || visibleSegments[0]
@@ -925,6 +929,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                                       if (!previousPage) return;
                                       setSelectedPageId(previousPage.id);
                                       setSelectedSegmentId(previousPage.blocks?.[0]?.id || '');
+                                      setPdfViewerNonce((current) => current + 1);
                                     }}
                                   >
                                     上一页
@@ -938,6 +943,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                                       if (!nextPage) return;
                                       setSelectedPageId(nextPage.id);
                                       setSelectedSegmentId(nextPage.blocks?.[0]?.id || '');
+                                      setPdfViewerNonce((current) => current + 1);
                                     }}
                                   >
                                     下一页
@@ -954,8 +960,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                                 {selectedPages[spreadStartIndex + 1] && <span>第 {selectedPages[spreadStartIndex + 1].pageNumber} 页</span>}
                               </div>
                               <iframe
+                                key={`${selectedDocument.id}-${spreadStartIndex}-${pdfViewerNonce}`}
                                 title="PDF 双页预览"
-                                src={`${previewUrl}#page=${spreadStartPage?.pageNumber || 1}&zoom=page-fit&view=FitH&spreadMode=1`}
+                                src={pdfPreviewUrl}
                               />
                             </div>
                           )}
@@ -982,6 +989,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                                 onClick={() => {
                                   setSelectedPageId(page.id);
                                   setSelectedSegmentId(page.blocks?.[0]?.id || '');
+                                  setPdfViewerNonce((current) => current + 1);
                                 }}
                               >
                                 <strong>第 {page.pageNumber} 页</strong>
