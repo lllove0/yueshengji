@@ -706,7 +706,6 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               <Stat label="资源总数" value={documents.length} />
               <Stat label="待处理" value={needsReviewCount} />
               <Stat label="打卡记录" value={checkins.length} />
-              <Stat label="用户数量" value={canAdmin ? users.length : '-'} />
             </div>
             {activeAdminSection === 'resources' && (
               <div className="admin-grid">
