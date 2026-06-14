@@ -137,7 +137,6 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const progress = selectedDocument
     ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(totalSegmentCount, 1)) * 100)
     : 0;
-  const needsReviewCount = documents.filter((document) => document.status === 'needs_review' || document.parseStatus === 'needs_review').length;
   const filteredDocuments = documents.filter((document) => {
     const query = resourceQuery.trim().toLowerCase();
     const searchableText = [
@@ -702,11 +701,6 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
 
         {activeTab === 'admin' && canManage && (
           <section className="admin-panel">
-            <div className="admin-summary">
-              <Stat label="资源总数" value={documents.length} />
-              <Stat label="待处理" value={needsReviewCount} />
-              <Stat label="打卡记录" value={checkins.length} />
-            </div>
             {activeAdminSection === 'resources' && (
               <div className="admin-grid">
                 <section className="panel-card wide">
