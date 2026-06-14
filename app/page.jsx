@@ -177,10 +177,10 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   }, [user, canManage, activeTab, lockedMode]);
 
   useEffect(() => {
-    if (!canAdmin && activeAdminSection === 'users') {
+    if (user && !canAdmin && activeAdminSection === 'users') {
       setActiveAdminSection('resources');
     }
-  }, [canAdmin, activeAdminSection]);
+  }, [user, canAdmin, activeAdminSection]);
 
   useEffect(() => {
     if (!['review', 'resourceForm'].includes(activeAdminSection) || !documents.length) return;
