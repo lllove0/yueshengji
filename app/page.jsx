@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 
 const roleLabel = {
   admin: '管理员',
@@ -81,6 +82,7 @@ const emptyEditor = {
 export default function HomePage({ initialTab = 'reader', initialAdminSection = 'resources', lockedMode = 'reader' }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' });
   const [loginMessage, setLoginMessage] = useState('');
   const [documents, setDocuments] = useState([]);
@@ -160,7 +162,10 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
 
   useEffect(() => {
     const savedToken = localStorage.getItem('readerToken') || '';
-    if (!savedToken) return;
+    if (!savedToken) {
+      setAuthReady(true);
+      return;
+    }
     setToken(savedToken);
     bootstrap(savedToken);
   }, []);
@@ -284,6 +289,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       await loadWorkspace(nextToken, currentUser);
     } catch {
       logout();
+    } finally {
+      setAuthReady(true);
     }
   }
 
@@ -323,6 +330,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     localStorage.removeItem('readerToken');
     setToken('');
     setUser(null);
+    setAuthReady(true);
     setDocuments([]);
     setCheckins([]);
     setUsers([]);
@@ -526,6 +534,17 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     setAudioStatus('idle');
   }
 
+  if (!authReady) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-panel">
+          <h1>阅声记</h1>
+          <p>正在恢复登录状态...</p>
+        </section>
+      </main>
+    );
+  }
+
   if (!user) {
     return (
       <main className="auth-shell">
@@ -558,8 +577,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
         </div>
         <div className="topbar-actions">
           <span>{user.username} · {roleLabel[user.role] || user.role}</span>
-          <a className="ghost-link" href="/">前台阅读</a>
-          {canManage && <a className="ghost-link" href="/admin">后台管理</a>}
+          <Link className="ghost-link" href="/">前台阅读</Link>
+          {canManage && <Link className="ghost-link" href="/admin">后台管理</Link>}
           <button className="ghost-btn" onClick={logout}>退出</button>
         </div>
       </header>
@@ -575,14 +594,14 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
           {activeTab === 'admin' && canManage && (
             <nav className="admin-nav" aria-label="后台管理">
               {adminNav.filter((item) => !item.adminOnly || canAdmin).map((item) => (
-                <a
+                <Link
                   key={item.id}
                   className={activeAdminSection === item.id || (item.id === 'resources' && activeAdminSection === 'resourceForm') ? 'active' : ''}
                   href={item.href}
                   onClick={() => setActiveAdminSection(item.id)}
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
           )}
@@ -717,7 +736,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <h2>资源列表</h2>
                     <div className="head-actions">
                       <span>{filteredDocuments.length} / {documents.length}</span>
-                      <a className="primary-link compact-action" href="/admin/resources/new">上传资源</a>
+                      <Link className="primary-link compact-action" href="/admin/resources/new">上传资源</Link>
                     </div>
                   </div>
                   <div className="resource-filters">
@@ -759,8 +778,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         <span>{accessLevelLabel[document.accessLevel] || '会员'} · {formatPrice(document.priceCents)}</span>
                         <span>{document.segments?.length || 0}</span>
                         <span className="table-actions">
-                          <a className="ghost-link compact-action" href={`/admin/resources/new?document=${document.id}`}>编辑</a>
-                          <a className="ghost-link compact-action" href={`/admin/review?document=${document.id}`}>校对</a>
+                          <Link className="ghost-link compact-action" href={`/admin/resources/new?document=${document.id}`}>编辑</Link>
+                          <Link className="ghost-link compact-action" href={`/admin/review?document=${document.id}`}>校对</Link>
                         </span>
                       </div>
                     ))}
@@ -788,7 +807,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                 <section className="panel-card resource-meta-panel">
                   <div className="compact-card-head">
                     <h2>资源信息</h2>
-                    <a className="ghost-link compact-action" href="/admin/resources">返回列表</a>
+                    <Link className="ghost-link compact-action" href="/admin/resources">返回列表</Link>
                   </div>
                   <form className="stack-form" onSubmit={saveDocument}>
                     <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
@@ -821,7 +840,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
                     <div className="button-row">
                       <button className="primary-btn" type="submit" disabled={!editor.id}>保存资源信息</button>
-                      <a className="ghost-link compact-action" href={editor.id ? `/admin/review?document=${editor.id}` : '/admin/review'}>进入校对</a>
+                      <Link className="ghost-link compact-action" href={editor.id ? `/admin/review?document=${editor.id}` : '/admin/review'}>进入校对</Link>
                       {selectedDocument?.sourceType === 'pdf' && (
                         <button className="ghost-btn" type="button" onClick={parsePdfDocument}>重新解析 PDF</button>
                       )}
