@@ -299,6 +299,46 @@ button:disabled {
   padding-right: 2px;
 }
 
+.source-preview {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+
+.source-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--paper-3);
+}
+
+.source-preview-head span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.source-preview iframe {
+  width: 100%;
+  height: min(72dvh, 760px);
+  display: block;
+  border: 0;
+  background: #fff;
+}
+
+.source-preview img {
+  width: 100%;
+  max-height: 760px;
+  display: block;
+  object-fit: contain;
+  background: #fff;
+}
+
 .segment-card {
   padding: 16px;
   border: 1px solid var(--border);

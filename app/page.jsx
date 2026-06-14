@@ -98,6 +98,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [resourceSourceType, setResourceSourceType] = useState('all');
   const [message, setMessage] = useState('');
   const [audioStatus, setAudioStatus] = useState('idle');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewType, setPreviewType] = useState('');
+  const [previewError, setPreviewError] = useState('');
 
   const canManage = user && ['admin', 'editor'].includes(user.role);
   const canAdmin = user?.role === 'admin';
@@ -183,6 +186,40 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       setSelectedSegmentId(selectedDocument.segments[0].id);
     }
   }, [selectedDocumentId, documents]);
+
+  useEffect(() => {
+    let objectUrl = '';
+    let ignore = false;
+    setPreviewUrl('');
+    setPreviewType('');
+    setPreviewError('');
+
+    async function loadPreview() {
+      if (!token || !selectedDocument?.filePath || !['pdf', 'image'].includes(selectedDocument.sourceType)) return;
+      try {
+        const response = await fetch(`/api/documents/${selectedDocument.id}/file`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!response.ok) throw new Error('原文件无法预览');
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!ignore) {
+          setPreviewUrl(objectUrl);
+          setPreviewType(blob.type || selectedDocument.sourceType);
+        }
+      } catch (error) {
+        if (!ignore) setPreviewError(error.message);
+      }
+    }
+
+    loadPreview();
+    return () => {
+      ignore = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [token, selectedDocument]);
 
   async function api(path, options = {}, overrideToken = token) {
     const headers = { ...(options.headers || {}) };
@@ -501,6 +538,22 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               <Stat label="本文进度" value={`${progress}%`} />
               <Stat label="连续天数" value={streak} />
             </div>
+
+            {(previewUrl || previewError) && (
+              <section className="source-preview">
+                <div className="source-preview-head">
+                  <strong>原文件预览</strong>
+                  <span>{selectedDocument?.fileName || selectedDocument?.title}</span>
+                </div>
+                {previewUrl && previewType === 'application/pdf' && (
+                  <iframe title="原始 PDF 预览" src={previewUrl} />
+                )}
+                {previewUrl && previewType.startsWith('image/') && (
+                  <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
+                )}
+                {previewError && <p className="form-message">{previewError}</p>}
+              </section>
+            )}
 
             <div className="segment-list">
               {!selectedDocument && <p className="placeholder">暂无内容</p>}
