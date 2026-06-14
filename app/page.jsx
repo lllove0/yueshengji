@@ -121,6 +121,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const selectedPages = normalizeDocumentPages(selectedDocument);
   const selectedPage = selectedPages.find((page) => page.id === selectedPageId) || selectedPages[0] || null;
   const selectedPageIndex = selectedPage ? selectedPages.findIndex((page) => page.id === selectedPage.id) : -1;
+  const spreadStartIndex = selectedPageIndex <= 0 ? 0 : selectedPageIndex % 2 === 0 ? selectedPageIndex : selectedPageIndex - 1;
+  const spreadPages = [selectedPages[spreadStartIndex], selectedPages[spreadStartIndex + 1]].filter(Boolean);
   const visibleSegments = selectedPage?.blocks?.length ? selectedPage.blocks : selectedDocument?.segments || [];
   const selectedSegment = visibleSegments.find((segment) => segment.id === selectedSegmentId)
     || visibleSegments[0]
@@ -903,7 +905,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   <h2>校对工作台</h2>
                   {!selectedDocument && <p className="placeholder compact">请选择一个资源开始校对</p>}
                   {selectedDocument && (
-                    <div className="review-workbench-grid">
+                    <>
                       {(previewUrl || previewError) && (
                         <section className="source-preview admin-source-preview">
                           <div className="source-preview-head">
@@ -946,11 +948,30 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                             </div>
                           </div>
                           {previewUrl && previewType === 'application/pdf' && (
-                            <div className="page-flip-stage" key={`${selectedDocument.id}-${selectedPage?.id || 'page'}`}>
-                              <iframe
-                                title="后台 PDF 预览"
-                                src={`${previewUrl}#page=${selectedPage?.pageNumber || 1}&zoom=page-fit`}
-                              />
+                            <div className="pdf-spread" key={`${selectedDocument.id}-spread-${spreadStartIndex}`}>
+                              {spreadPages.map((page) => (
+                                <div
+                                  className={`pdf-spread-page ${page.id === selectedPage?.id ? 'active' : ''}`}
+                                  key={page.id}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => {
+                                    setSelectedPageId(page.id);
+                                    setSelectedSegmentId(page.blocks?.[0]?.id || '');
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (!['Enter', ' '].includes(event.key)) return;
+                                    setSelectedPageId(page.id);
+                                    setSelectedSegmentId(page.blocks?.[0]?.id || '');
+                                  }}
+                                >
+                                  <span>第 {page.pageNumber} 页</span>
+                                  <iframe
+                                    title={`PDF 第 ${page.pageNumber} 页`}
+                                    src={`${previewUrl}#page=${page.pageNumber}&zoom=page-fit`}
+                                  />
+                                </div>
+                              ))}
                             </div>
                           )}
                           {previewUrl && previewType.startsWith('image/') && (
@@ -1000,7 +1021,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                           </form>
                         </div>
                       </section>
-                    </div>
+                    </>
                   )}
                 </section>
               </div>
