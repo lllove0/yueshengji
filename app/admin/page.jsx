@@ -1,7 +1,7 @@
 import HomePage from '../page';
 
 export const metadata = {
-  title: '管理后台 - 中英文阅读打卡系统'
+  title: '管理后台 - 阅声记'
 };
 
 export default function AdminPage() {

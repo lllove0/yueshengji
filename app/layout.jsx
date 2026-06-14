@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: '中英文阅读打卡系统',
-  description: '支持中英文阅读、上传文本/PDF、内容编辑、用户管理和阅读打卡。'
+  title: '阅声记',
+  description: '中英文阅读与语音打卡系统，支持上传文本、PDF、图片、资源管理、用户管理和阅读打卡。'
 };
 
 export default function RootLayout({ children }) {

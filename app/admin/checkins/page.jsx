@@ -1,7 +1,7 @@
 import HomePage from '../../page';
 
 export const metadata = {
-  title: '打卡记录 - 中英文阅读打卡系统'
+  title: '打卡记录 - 阅声记'
 };
 
 export default function AdminCheckinsPage() {

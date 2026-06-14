@@ -1,7 +1,7 @@
 import HomePage from '../../page';
 
 export const metadata = {
-  title: '资源管理 - 中英文阅读打卡系统'
+  title: '资源管理 - 阅声记'
 };
 
 export default function AdminResourcesPage() {

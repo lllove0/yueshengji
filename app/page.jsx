@@ -388,8 +388,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     return (
       <main className="auth-shell">
         <section className="auth-panel">
-          <h1>中英文阅读打卡</h1>
-          <p>登录后进入自己的阅读系统。默认管理员：admin / admin123</p>
+          <h1>阅声记</h1>
+          <p>中英文阅读与语音打卡系统。默认管理员：admin / admin123</p>
           <form className="stack-form" onSubmit={login}>
             <label>
               用户名
@@ -411,8 +411,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     <main className="app-frame">
       <header className="topbar">
         <div>
-          <h1>中英文阅读打卡</h1>
-          <p>Bilingual Reading Tracker</p>
+          <h1>阅声记</h1>
+          <p>中英文阅读与语音打卡系统</p>
         </div>
         <div className="topbar-actions">
           <span>{user.username} · {roleLabel[user.role] || user.role}</span>
