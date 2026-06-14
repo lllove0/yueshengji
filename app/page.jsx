@@ -23,7 +23,7 @@ const emptyEditor = {
   chunkSize: 260
 };
 
-export default function HomePage() {
+export default function HomePage({ initialTab = 'reader' }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' });
@@ -33,7 +33,7 @@ export default function HomePage() {
   const [users, setUsers] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
-  const [activeTab, setActiveTab] = useState('reader');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [editor, setEditor] = useState(emptyEditor);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'reader' });
   const [uploadTitle, setUploadTitle] = useState('');
@@ -67,6 +67,12 @@ export default function HomePage() {
     setToken(savedToken);
     bootstrap(savedToken);
   }, []);
+
+  useEffect(() => {
+    if (user && !canManage && activeTab === 'admin') {
+      setActiveTab('reader');
+    }
+  }, [user, canManage, activeTab]);
 
   useEffect(() => {
     if (!selectedDocument) {
@@ -289,6 +295,8 @@ export default function HomePage() {
         </div>
         <div className="topbar-actions">
           <span>{user.username} · {roleLabel[user.role] || user.role}</span>
+          <a className="ghost-link" href="/">阅读器</a>
+          {canManage && <a className="ghost-link" href="/admin">管理后台</a>}
           <button className="ghost-btn" onClick={logout}>退出</button>
         </div>
       </header>
