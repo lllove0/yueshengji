@@ -122,7 +122,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const selectedPage = selectedPages.find((page) => page.id === selectedPageId) || selectedPages[0] || null;
   const selectedPageIndex = selectedPage ? selectedPages.findIndex((page) => page.id === selectedPage.id) : -1;
   const spreadStartIndex = selectedPageIndex <= 0 ? 0 : selectedPageIndex % 2 === 0 ? selectedPageIndex : selectedPageIndex - 1;
-  const spreadPages = [selectedPages[spreadStartIndex], selectedPages[spreadStartIndex + 1]].filter(Boolean);
+  const spreadStartPage = selectedPages[spreadStartIndex] || selectedPage;
   const visibleSegments = selectedPage?.blocks?.length ? selectedPage.blocks : selectedDocument?.segments || [];
   const selectedSegment = visibleSegments.find((segment) => segment.id === selectedSegmentId)
     || visibleSegments[0]
@@ -949,29 +949,14 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                           </div>
                           {previewUrl && previewType === 'application/pdf' && (
                             <div className="pdf-spread" key={`${selectedDocument.id}-spread-${spreadStartIndex}`}>
-                              {spreadPages.map((page) => (
-                                <div
-                                  className={`pdf-spread-page ${page.id === selectedPage?.id ? 'active' : ''}`}
-                                  key={page.id}
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => {
-                                    setSelectedPageId(page.id);
-                                    setSelectedSegmentId(page.blocks?.[0]?.id || '');
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (!['Enter', ' '].includes(event.key)) return;
-                                    setSelectedPageId(page.id);
-                                    setSelectedSegmentId(page.blocks?.[0]?.id || '');
-                                  }}
-                                >
-                                  <span>第 {page.pageNumber} 页</span>
-                                  <iframe
-                                    title={`PDF 第 ${page.pageNumber} 页`}
-                                    src={`${previewUrl}#page=${page.pageNumber}&zoom=page-fit`}
-                                  />
-                                </div>
-                              ))}
+                              <div className="pdf-spread-labels">
+                                <span>第 {spreadStartPage?.pageNumber || 1} 页</span>
+                                {selectedPages[spreadStartIndex + 1] && <span>第 {selectedPages[spreadStartIndex + 1].pageNumber} 页</span>}
+                              </div>
+                              <iframe
+                                title="PDF 双页预览"
+                                src={`${previewUrl}#page=${spreadStartPage?.pageNumber || 1}&zoom=page-fit&view=FitH&spreadMode=1`}
+                              />
                             </div>
                           )}
                           {previewUrl && previewType.startsWith('image/') && (

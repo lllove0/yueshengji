@@ -439,40 +439,36 @@ button:disabled {
 }
 
 .pdf-spread {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  position: relative;
   padding: 12px;
   background: linear-gradient(90deg, #ebe4d8 0, #fff 49%, #d8cdbc 50%, #fff 51%, #ebe4d8 100%);
   animation: page-flip-in 360ms ease both;
 }
 
-.pdf-spread-page {
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 16px 34px rgba(20, 20, 20, 0.12);
-  cursor: pointer;
+.pdf-spread-labels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.pdf-spread-page.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-soft), 0 16px 34px rgba(20, 20, 20, 0.12);
-}
-
-.pdf-spread-page span {
-  display: block;
+.pdf-spread-labels span {
   padding: 7px 10px;
+  border-radius: 8px;
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 850;
   background: var(--paper-2);
 }
 
-.pdf-spread-page iframe {
+.pdf-spread iframe {
+  width: 100%;
   height: min(70dvh, 760px);
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(20, 20, 20, 0.12);
 }
 
 .admin-source-preview {
@@ -982,10 +978,6 @@ textarea:focus {
 
   .table-actions {
     justify-content: flex-start;
-  }
-
-  .pdf-spread {
-    grid-template-columns: 1fr;
   }
 }
 
