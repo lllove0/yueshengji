@@ -903,7 +903,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   <h2>校对工作台</h2>
                   {!selectedDocument && <p className="placeholder compact">请选择一个资源开始校对</p>}
                   {selectedDocument && (
-                    <>
+                    <div className="review-workbench-grid">
                       {(previewUrl || previewError) && (
                         <section className="source-preview admin-source-preview">
                           <div className="source-preview-head">
@@ -1000,7 +1000,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                           </form>
                         </div>
                       </section>
-                    </>
+                    </div>
                   )}
                 </section>
               </div>

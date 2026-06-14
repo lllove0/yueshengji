@@ -442,6 +442,24 @@ button:disabled {
   margin-top: 12px;
 }
 
+.review-workbench-grid .admin-source-preview,
+.review-workbench-grid .page-review-panel {
+  margin: 0;
+}
+
+.review-workbench-grid .source-preview iframe,
+.review-workbench-grid .source-preview object {
+  height: min(74dvh, 820px);
+}
+
+.review-workbench-grid .page-review-layout {
+  grid-template-columns: minmax(112px, 0.34fr) minmax(0, 1fr);
+}
+
+.review-workbench-grid .page-review-list {
+  max-height: min(62dvh, 680px);
+}
+
 .source-preview-head a {
   color: var(--accent);
   font-size: 13px;
@@ -541,6 +559,13 @@ button:disabled {
 .review-resource-panel,
 .review-workbench {
   min-width: 0;
+}
+
+.review-workbench-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.82fr);
+  gap: 12px;
+  align-items: start;
 }
 
 .review-resource-list {
@@ -920,7 +945,8 @@ textarea:focus {
   .workspace,
   .resource-admin-stack,
   .resource-form-grid,
-  .review-admin-grid {
+  .review-admin-grid,
+  .review-workbench-grid {
     grid-template-columns: 1fr;
   }
 
