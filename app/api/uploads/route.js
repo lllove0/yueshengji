@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { PDFParse } from 'pdf-parse';
 import { createDocumentRecord, readDb, uploadPath, writeDb } from '../../../lib/db';
 import { requireManager } from '../../../lib/auth';
 
@@ -32,24 +33,35 @@ export async function POST(request) {
 
   const db = readDb();
   const sourceType = isText ? 'text' : isPdf ? 'pdf' : 'image';
-  const content = isText
-    ? buffer.toString('utf8')
-    : isPdf
-      ? `PDF 文件已上传：${originalName}\n\n请在后台编辑原文，或后续接入 PDF 解析库自动抽取文字。`
-      : `图片文件已上传：${originalName}\n\n请在后台编辑识别后的文字，或后续接入 OCR 自动识别图片内容。`;
+  let parseStatus = isText ? 'parsed' : 'needs_review';
+  let description = isText ? '' : '已保存原始文件，等待自动解析或人工编辑。';
+  let content = '';
+  if (isText) {
+    content = buffer.toString('utf8');
+  } else if (isPdf) {
+    content = await extractPdfText(buffer);
+    if (content) {
+      parseStatus = 'parsed';
+      description = '已自动抽取 PDF 文本，可在后台继续校对和编辑。';
+    } else {
+      content = `PDF 文件已上传：${originalName}\n\n未能自动抽取文字。若这是扫描版 PDF，请后续接入 OCR，或先在后台手动粘贴原文。`;
+    }
+  } else {
+    content = `图片文件已上传：${originalName}\n\n请在后台编辑识别后的文字，或后续接入 OCR 自动识别图片内容。`;
+  }
   const document = createDocumentRecord({
     title: title || originalName.replace(/\.[^.]+$/, ''),
     language: 'bilingual',
     content,
     translation: '',
     category: sourceType === 'image' ? '图片阅读' : '导入资源',
-    description: isText ? '' : '已保存原始文件，等待自动解析或人工编辑。',
-    status: isText ? 'published' : 'needs_review',
+    description,
+    status: parseStatus === 'parsed' ? 'published' : 'needs_review',
     visibility: 'members',
     accessLevel: 'member',
     priceCents: 0,
     sourceType,
-    parseStatus: isText ? 'parsed' : 'needs_review',
+    parseStatus,
     fileName: originalName,
     filePath: target.relative,
     ownerId: result.user.id
@@ -62,10 +74,31 @@ export async function POST(request) {
     filePath: target.relative,
     mimeType: file.type || 'application/octet-stream',
     sourceType,
-    parseStatus: isText ? 'parsed' : 'needs_review',
+    parseStatus,
     uploadedBy: result.user.id,
     createdAt: new Date().toISOString()
   });
   writeDb(db);
   return Response.json({ document }, { status: 201 });
+}
+
+async function extractPdfText(buffer) {
+  let parser;
+  try {
+    parser = new PDFParse({ data: buffer });
+    const result = await parser.getText();
+    return normalizePdfText(result.text);
+  } catch {
+    return '';
+  } finally {
+    await parser?.destroy();
+  }
+}
+
+function normalizePdfText(text) {
+  return String(text || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
