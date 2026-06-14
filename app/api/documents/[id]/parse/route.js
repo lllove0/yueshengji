@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createDocumentRecord, readDb, writeDb } from '../../../../../lib/db';
-import { extractPdfPages } from '../../../../../lib/pdf';
+import { extractPdfPageShells, extractPdfPages } from '../../../../../lib/pdf';
 import { requireManager } from '../../../../../lib/auth';
 
 export const runtime = 'nodejs';
@@ -26,9 +26,22 @@ export async function POST(request, { params }) {
     return Response.json({ error: '原始 PDF 文件不存在' }, { status: 404 });
   }
 
-  const pages = await extractPdfPages(fs.readFileSync(absolutePath));
+  const buffer = fs.readFileSync(absolutePath);
+  const pages = await extractPdfPages(buffer);
   if (!pages.length) {
-    return Response.json({ error: '未能抽取文字，可能是扫描版 PDF，需要 OCR' }, { status: 422 });
+    const emptyPages = await extractPdfPageShells(buffer);
+    db.documents[index] = createDocumentRecord({
+      ...document,
+      content: document.content || `PDF 文件已上传：${document.fileName}\n\n未能自动抽取文字。若这是扫描版 PDF，请在内容校对中按页补录文字，后续可接入 OCR 自动识别。`,
+      pages: emptyPages.length ? emptyPages : document.pages,
+      status: 'needs_review',
+      parseStatus: 'needs_review',
+      description: emptyPages.length
+        ? `未能自动抽取文字，已生成 ${emptyPages.length} 个待校对页面。`
+        : '未能自动抽取文字，请在内容校对中补录文字。'
+    });
+    writeDb(db);
+    return Response.json({ document: db.documents[index], warning: '未能抽取文字，已转入页面校对' });
   }
 
   db.documents[index] = createDocumentRecord({

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { createDocumentRecord, readDb, uploadPath, writeDb } from '../../../lib/db';
-import { extractPdfPages } from '../../../lib/pdf';
+import { extractPdfPageShells, extractPdfPages } from '../../../lib/pdf';
 import { requireManager } from '../../../lib/auth';
 
 export const runtime = 'nodejs';
@@ -46,7 +46,11 @@ export async function POST(request) {
       parseStatus = 'parsed';
       description = '已自动抽取 PDF 文本，可在后台继续校对和编辑。';
     } else {
-      content = `PDF 文件已上传：${originalName}\n\n未能自动抽取文字。若这是扫描版 PDF，请后续接入 OCR，或先在后台手动粘贴原文。`;
+      pages = await extractPdfPageShells(buffer);
+      content = `PDF 文件已上传：${originalName}\n\n未能自动抽取文字。若这是扫描版 PDF，请在内容校对中按页补录文字，后续可接入 OCR 自动识别。`;
+      description = pages.length
+        ? `未能自动抽取文字，已生成 ${pages.length} 个待校对页面。`
+        : '未能自动抽取文字，请在内容校对中补录文字。';
     }
   } else {
     content = `图片文件已上传：${originalName}\n\n请在后台编辑识别后的文字，或后续接入 OCR 自动识别图片内容。`;
