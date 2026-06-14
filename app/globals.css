@@ -386,6 +386,55 @@ button:disabled {
   gap: 12px;
 }
 
+.resource-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.resource-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.resource-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.resource-row {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink-1);
+  text-align: left;
+}
+
+.resource-row.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.resource-row strong,
+.resource-row span {
+  display: block;
+}
+
+.resource-row span {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .user-create-form {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -494,6 +543,10 @@ textarea:focus {
   color: var(--ink-3);
   text-align: center;
   padding: 60px 16px;
+}
+
+.placeholder.compact {
+  padding: 22px 12px;
 }
 
 @media (max-width: 980px) {

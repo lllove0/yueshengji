@@ -67,6 +67,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [editor, setEditor] = useState(emptyEditor);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'reader' });
   const [uploadTitle, setUploadTitle] = useState('');
+  const [resourceQuery, setResourceQuery] = useState('');
+  const [resourceStatus, setResourceStatus] = useState('all');
+  const [resourceSourceType, setResourceSourceType] = useState('all');
   const [message, setMessage] = useState('');
   const [audioStatus, setAudioStatus] = useState('idle');
 
@@ -92,6 +95,19 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(selectedDocument.segments.length, 1)) * 100)
     : 0;
   const needsReviewCount = documents.filter((document) => document.status === 'needs_review' || document.parseStatus === 'needs_review').length;
+  const filteredDocuments = documents.filter((document) => {
+    const query = resourceQuery.trim().toLowerCase();
+    const searchableText = [
+      document.title,
+      document.category,
+      document.description,
+      document.fileName
+    ].join(' ').toLowerCase();
+    const matchesQuery = !query || searchableText.includes(query);
+    const matchesStatus = resourceStatus === 'all' || (document.status || 'published') === resourceStatus;
+    const matchesSourceType = resourceSourceType === 'all' || (document.sourceType || 'text') === resourceSourceType;
+    return matchesQuery && matchesStatus && matchesSourceType;
+  });
   const checkinRows = checkins.map((item) => ({
     ...item,
     user: users.find((target) => target.id === item.userId) || (item.userId === user?.id ? user : null),
@@ -502,7 +518,17 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <label>译文 / 注释<textarea rows={7} value={editor.translation} onChange={(event) => setEditor({ ...editor, translation: event.target.value })} /></label>
                     <div className="button-row">
                       <button className="primary-btn" type="submit">保存并生成打卡</button>
-                      <button className="ghost-btn" type="button" onClick={() => setEditor(emptyEditor)}>新建</button>
+                      <button
+                        className="ghost-btn"
+                        type="button"
+                        onClick={() => {
+                          setEditor(emptyEditor);
+                          setSelectedDocumentId('');
+                          setSelectedSegmentId('');
+                        }}
+                      >
+                        新建
+                      </button>
                       <button className="danger-btn" type="button" onClick={deleteDocument}>删除</button>
                     </div>
                   </form>
@@ -516,6 +542,44 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <button className="primary-btn" type="submit">上传并生成</button>
                   </form>
                   <p className="form-message">TXT/MD 自动读取文本；PDF 和图片会保存文件并生成待处理资源，后续可接 PDF 解析或 OCR。</p>
+                </section>
+
+                <section className="panel-card">
+                  <h2>资源库</h2>
+                  <div className="resource-filters">
+                    <label>搜索<input value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="标题、分类、文件名" /></label>
+                    <label>状态<select value={resourceStatus} onChange={(event) => setResourceStatus(event.target.value)}>
+                      <option value="all">全部状态</option>
+                      <option value="published">已发布</option>
+                      <option value="draft">草稿</option>
+                      <option value="needs_review">待处理</option>
+                      <option value="archived">已归档</option>
+                    </select></label>
+                    <label>类型<select value={resourceSourceType} onChange={(event) => setResourceSourceType(event.target.value)}>
+                      <option value="all">全部类型</option>
+                      <option value="text">文本</option>
+                      <option value="pdf">PDF</option>
+                      <option value="image">图片</option>
+                    </select></label>
+                  </div>
+                  <div className="resource-list">
+                    {filteredDocuments.map((document) => (
+                      <button
+                        className={`resource-row ${document.id === selectedDocumentId ? 'active' : ''}`}
+                        key={document.id}
+                        type="button"
+                        onClick={() => {
+                          stopReading();
+                          setSelectedDocumentId(document.id);
+                          setSelectedSegmentId(document.segments[0]?.id || '');
+                        }}
+                      >
+                        <strong>{document.title}</strong>
+                        <span>{document.category || '未分类'} · {sourceTypeLabel[document.sourceType] || '文本'} · {statusLabel[document.status] || '已发布'}</span>
+                      </button>
+                    ))}
+                    {!filteredDocuments.length && <p className="placeholder compact">没有匹配的资源</p>}
+                  </div>
                 </section>
               </div>
             )}
