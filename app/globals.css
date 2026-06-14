@@ -437,7 +437,7 @@ button:disabled {
 
 .user-create-form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   align-items: end;
 }
 
@@ -484,7 +484,7 @@ textarea:focus {
 
 .manage-user-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) 120px minmax(120px, 1fr) auto auto;
+  grid-template-columns: minmax(120px, 1fr) 110px 110px 110px minmax(130px, 0.8fr) minmax(120px, 1fr) auto auto;
   align-items: end;
   gap: 8px;
 }

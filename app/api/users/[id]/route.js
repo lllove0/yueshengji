@@ -15,12 +15,24 @@ export async function PUT(request, { params }) {
   }
 
   const role = ['admin', 'editor', 'reader'].includes(input.role) ? input.role : user.role;
+  const plan = ['free', 'pro', 'team'].includes(input.plan) ? input.plan : user.plan || 'free';
+  const accountStatus = ['active', 'suspended'].includes(input.accountStatus)
+    ? input.accountStatus
+    : user.accountStatus || 'active';
   const adminCount = db.users.filter((item) => item.role === 'admin').length;
   if (user.role === 'admin' && role !== 'admin' && adminCount <= 1) {
     return Response.json({ error: '至少保留一个管理员' }, { status: 400 });
   }
+  if (id === result.user.id && accountStatus !== 'active') {
+    return Response.json({ error: '不能停用当前登录账号' }, { status: 400 });
+  }
 
   user.role = role;
+  user.plan = plan;
+  user.accountStatus = accountStatus;
+  if (Object.hasOwn(input, 'subscriptionEndsAt')) {
+    user.subscriptionEndsAt = String(input.subscriptionEndsAt || '').trim();
+  }
   const password = String(input.password || '');
   if (password) {
     if (password.length < 4) {

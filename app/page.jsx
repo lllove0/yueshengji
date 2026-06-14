@@ -33,6 +33,23 @@ const visibilityLabel = {
   public: '公开'
 };
 
+const accessLevelLabel = {
+  free: '免费',
+  member: '会员',
+  paid: '付费'
+};
+
+const planLabel = {
+  free: '免费版',
+  pro: '专业版',
+  team: '团队版'
+};
+
+const accountStatusLabel = {
+  active: '正常',
+  suspended: '停用'
+};
+
 const adminNav = [
   { id: 'resources', label: '资源管理', href: '/admin/resources' },
   { id: 'users', label: '用户管理', href: '/admin/users', adminOnly: true },
@@ -47,6 +64,8 @@ const emptyEditor = {
   description: '',
   status: 'published',
   visibility: 'members',
+  accessLevel: 'member',
+  priceCents: 0,
   content: '',
   translation: '',
   chunkSize: 260
@@ -65,7 +84,14 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [activeAdminSection, setActiveAdminSection] = useState(initialAdminSection);
   const [editor, setEditor] = useState(emptyEditor);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'reader' });
+  const [newUser, setNewUser] = useState({
+    username: '',
+    password: '',
+    role: 'reader',
+    plan: 'free',
+    accountStatus: 'active',
+    subscriptionEndsAt: ''
+  });
   const [uploadTitle, setUploadTitle] = useState('');
   const [resourceQuery, setResourceQuery] = useState('');
   const [resourceStatus, setResourceStatus] = useState('all');
@@ -101,7 +127,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       document.title,
       document.category,
       document.description,
-      document.fileName
+      document.fileName,
+      accessLevelLabel[document.accessLevel]
     ].join(' ').toLowerCase();
     const matchesQuery = !query || searchableText.includes(query);
     const matchesStatus = resourceStatus === 'all' || (document.status || 'published') === resourceStatus;
@@ -146,6 +173,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       description: selectedDocument.description || '',
       status: selectedDocument.status || 'published',
       visibility: selectedDocument.visibility || 'members',
+      accessLevel: selectedDocument.accessLevel || 'member',
+      priceCents: selectedDocument.priceCents || 0,
       content: selectedDocument.content,
       translation: selectedDocument.translation || '',
       chunkSize: selectedDocument.chunkSize || 260
@@ -237,6 +266,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
         description: editor.description,
         status: editor.status,
         visibility: editor.visibility,
+        accessLevel: editor.accessLevel,
+        priceCents: Number(editor.priceCents) || 0,
         content: editor.content,
         translation: editor.translation,
         chunkSize: Number(editor.chunkSize) || 260
@@ -282,7 +313,14 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       method: 'POST',
       body: newUser
     });
-    setNewUser({ username: '', password: '', role: 'reader' });
+    setNewUser({
+      username: '',
+      password: '',
+      role: 'reader',
+      plan: 'free',
+      accountStatus: 'active',
+      subscriptionEndsAt: ''
+    });
     const userData = await api('/api/users');
     setUsers(userData.users);
     setMessage('用户已创建');
@@ -420,7 +458,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                   }}
                 >
                   <strong>{document.title}</strong>
-                  <small>{sourceTypeLabel[document.sourceType] || '资源'} · {statusLabel[document.status] || '已发布'} · {percent}%</small>
+                  <small>{sourceTypeLabel[document.sourceType] || '资源'} · {statusLabel[document.status] || '已发布'} · {accessLevelLabel[document.accessLevel] || '会员'} · {percent}%</small>
                   <small>{languageLabel[document.language]} · {document.category || '未分类'} · {document.segments.length} 段</small>
                 </button>
               );
@@ -435,7 +473,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                 <h2>{selectedDocument?.title || '选择一篇内容'}</h2>
                 <p>
                   {selectedDocument
-                    ? `${languageLabel[selectedDocument.language]} · ${sourceTypeLabel[selectedDocument.sourceType] || '资源'} · ${statusLabel[selectedDocument.status] || '已发布'} · ${visibilityLabel[selectedDocument.visibility] || '登录可见'} · ${selectedDocument.segments.length} 个打卡段落`
+                    ? `${languageLabel[selectedDocument.language]} · ${sourceTypeLabel[selectedDocument.sourceType] || '资源'} · ${statusLabel[selectedDocument.status] || '已发布'} · ${visibilityLabel[selectedDocument.visibility] || '登录可见'} · ${accessLevelLabel[selectedDocument.accessLevel] || '会员'} · ${formatPrice(selectedDocument.priceCents)} · ${selectedDocument.segments.length} 个打卡段落`
                     : '上传文本、PDF 或图片，或在后台创建内容后开始阅读'}
                 </p>
               </div>
@@ -511,6 +549,12 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         <option value="private">私有</option>
                         <option value="public">公开</option>
                       </select></label>
+                      <label>访问级别<select value={editor.accessLevel} onChange={(event) => setEditor({ ...editor, accessLevel: event.target.value })}>
+                        <option value="free">免费</option>
+                        <option value="member">会员</option>
+                        <option value="paid">付费</option>
+                      </select></label>
+                      <label>价格（分）<input type="number" min="0" value={editor.priceCents} onChange={(event) => setEditor({ ...editor, priceCents: event.target.value })} /></label>
                       <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
                     </div>
                     <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
@@ -575,7 +619,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                         }}
                       >
                         <strong>{document.title}</strong>
-                        <span>{document.category || '未分类'} · {sourceTypeLabel[document.sourceType] || '文本'} · {statusLabel[document.status] || '已发布'}</span>
+                        <span>{document.category || '未分类'} · {sourceTypeLabel[document.sourceType] || '文本'} · {statusLabel[document.status] || '已发布'} · {accessLevelLabel[document.accessLevel] || '会员'} · {formatPrice(document.priceCents)}</span>
                       </button>
                     ))}
                     {!filteredDocuments.length && <p className="placeholder compact">没有匹配的资源</p>}
@@ -595,6 +639,16 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                     <option value="editor">编辑</option>
                     <option value="admin">管理员</option>
                   </select></label>
+                  <label>套餐<select value={newUser.plan} onChange={(event) => setNewUser({ ...newUser, plan: event.target.value })}>
+                    <option value="free">免费版</option>
+                    <option value="pro">专业版</option>
+                    <option value="team">团队版</option>
+                  </select></label>
+                  <label>状态<select value={newUser.accountStatus} onChange={(event) => setNewUser({ ...newUser, accountStatus: event.target.value })}>
+                    <option value="active">正常</option>
+                    <option value="suspended">停用</option>
+                  </select></label>
+                  <label>到期日<input type="date" value={newUser.subscriptionEndsAt} onChange={(event) => setNewUser({ ...newUser, subscriptionEndsAt: event.target.value })} /></label>
                   <button className="primary-btn" type="submit">创建用户</button>
                 </form>
                 <div className="user-list">
@@ -604,6 +658,9 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                       currentUserId={user.id}
                       user={item}
                       onRoleChange={(role) => updateUser(item, { role })}
+                      onPlanChange={(plan) => updateUser(item, { plan })}
+                      onStatusChange={(accountStatus) => updateUser(item, { accountStatus })}
+                      onSubscriptionChange={(subscriptionEndsAt) => updateUser(item, { subscriptionEndsAt })}
                       onPasswordReset={(password) => updateUser(item, { password })}
                       onDelete={() => deleteUser(item)}
                     />
@@ -653,7 +710,16 @@ function Stat({ label, value }) {
   );
 }
 
-function UserRow({ currentUserId, user, onRoleChange, onPasswordReset, onDelete }) {
+function UserRow({
+  currentUserId,
+  user,
+  onRoleChange,
+  onPlanChange,
+  onStatusChange,
+  onSubscriptionChange,
+  onPasswordReset,
+  onDelete
+}) {
   const [password, setPassword] = useState('');
   const isCurrentUser = currentUserId === user.id;
 
@@ -661,13 +727,27 @@ function UserRow({ currentUserId, user, onRoleChange, onPasswordReset, onDelete 
     <div className="user-row manage-user-row">
       <div>
         <strong>{user.username}</strong>
-        <small>{isCurrentUser ? '当前登录账号' : '用户账号'}</small>
+        <small>{isCurrentUser ? '当前登录账号' : `${planLabel[user.plan] || '免费版'} · ${accountStatusLabel[user.accountStatus] || '正常'}`}</small>
       </div>
       <select value={user.role} onChange={(event) => onRoleChange(event.target.value)}>
         <option value="reader">普通用户</option>
         <option value="editor">编辑</option>
         <option value="admin">管理员</option>
       </select>
+      <select value={user.plan || 'free'} onChange={(event) => onPlanChange(event.target.value)}>
+        <option value="free">免费版</option>
+        <option value="pro">专业版</option>
+        <option value="team">团队版</option>
+      </select>
+      <select value={user.accountStatus || 'active'} onChange={(event) => onStatusChange(event.target.value)}>
+        <option value="active">正常</option>
+        <option value="suspended">停用</option>
+      </select>
+      <input
+        type="date"
+        value={user.subscriptionEndsAt || ''}
+        onChange={(event) => onSubscriptionChange(event.target.value)}
+      />
       <input
         type="password"
         value={password}
@@ -707,6 +787,12 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit'
   });
+}
+
+function formatPrice(value) {
+  const cents = Number(value) || 0;
+  if (cents <= 0) return '免费';
+  return `¥${(cents / 100).toFixed(2)}`;
 }
 
 function calculateStreak(checkins) {

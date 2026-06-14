@@ -10,6 +10,9 @@ export async function POST(request) {
   if (!user || !verifyPassword(String(body.password || ''), user)) {
     return Response.json({ error: '用户名或密码错误' }, { status: 401 });
   }
+  if ((user.accountStatus || 'active') !== 'active') {
+    return Response.json({ error: '账号已停用，请联系管理员' }, { status: 403 });
+  }
   return Response.json({
     token: signToken(user),
     user: publicUser(user)

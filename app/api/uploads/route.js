@@ -46,6 +46,8 @@ export async function POST(request) {
     description: isText ? '' : '已保存原始文件，等待自动解析或人工编辑。',
     status: isText ? 'published' : 'needs_review',
     visibility: 'members',
+    accessLevel: 'member',
+    priceCents: 0,
     sourceType,
     parseStatus: isText ? 'parsed' : 'needs_review',
     fileName: originalName,
