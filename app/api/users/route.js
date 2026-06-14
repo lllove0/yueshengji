@@ -1,17 +1,17 @@
 import { createUserRecord, publicUser, readDb, writeDb } from '../../../lib/db';
-import { requireManager } from '../../../lib/auth';
+import { requireAdmin } from '../../../lib/auth';
 
 export const runtime = 'nodejs';
 
 export async function GET(request) {
-  const result = requireManager(request);
+  const result = requireAdmin(request);
   if (result.error) return result.error;
   const db = readDb();
   return Response.json({ users: db.users.map(publicUser) });
 }
 
 export async function POST(request) {
-  const result = requireManager(request);
+  const result = requireAdmin(request);
   if (result.error) return result.error;
   const input = await request.json();
   const username = String(input.username || '').trim();

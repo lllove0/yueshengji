@@ -41,6 +41,7 @@ export default function HomePage({ initialTab = 'reader' }) {
   const [audioStatus, setAudioStatus] = useState('idle');
 
   const canManage = user && ['admin', 'editor'].includes(user.role);
+  const canAdmin = user?.role === 'admin';
   const selectedDocument = documents.find((document) => document.id === selectedDocumentId) || null;
   const selectedSegment = selectedDocument?.segments.find((segment) => segment.id === selectedSegmentId)
     || selectedDocument?.segments[0]
@@ -126,7 +127,7 @@ export default function HomePage({ initialTab = 'reader' }) {
     setDocuments(documentData.documents);
     setCheckins(checkinData.checkins);
     setSelectedDocumentId((previous) => previous || documentData.documents[0]?.id || '');
-    if (currentUser && ['admin', 'editor'].includes(currentUser.role)) {
+    if (currentUser?.role === 'admin') {
       const userData = await api('/api/users', {}, nextToken);
       setUsers(userData.users);
     }
@@ -219,6 +220,22 @@ export default function HomePage({ initialTab = 'reader' }) {
     const userData = await api('/api/users');
     setUsers(userData.users);
     setMessage('用户已创建');
+  }
+
+  async function updateUser(targetUser, patch) {
+    const data = await api(`/api/users/${targetUser.id}`, {
+      method: 'PUT',
+      body: patch
+    });
+    setUsers((current) => current.map((item) => item.id === data.user.id ? data.user : item));
+    setMessage('用户已更新');
+  }
+
+  async function deleteUser(targetUser) {
+    await api(`/api/users/${targetUser.id}`, { method: 'DELETE' });
+    setUsers((current) => current.filter((item) => item.id !== targetUser.id));
+    setCheckins((current) => current.filter((item) => item.userId !== targetUser.id));
+    setMessage('用户已删除');
   }
 
   async function toggleCheckin() {
@@ -410,7 +427,7 @@ export default function HomePage({ initialTab = 'reader' }) {
                 <p className="form-message">TXT/MD 自动读取文本；PDF 会保存文件并生成待编辑记录，后续可接 PDF 解析库。</p>
               </section>
 
-              <section className="panel-card">
+              {canAdmin && <section className="panel-card">
                 <h2>用户管理</h2>
                 <form className="stack-form" onSubmit={createUser}>
                   <label>用户名<input value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} required /></label>
@@ -423,9 +440,18 @@ export default function HomePage({ initialTab = 'reader' }) {
                   <button className="primary-btn" type="submit">创建用户</button>
                 </form>
                 <div className="user-list">
-                  {users.map((item) => <div key={item.id} className="user-row"><span>{item.username}</span><small>{roleLabel[item.role]}</small></div>)}
+                  {users.map((item) => (
+                    <UserRow
+                      key={item.id}
+                      currentUserId={user.id}
+                      user={item}
+                      onRoleChange={(role) => updateUser(item, { role })}
+                      onPasswordReset={(password) => updateUser(item, { password })}
+                      onDelete={() => deleteUser(item)}
+                    />
+                  ))}
                 </div>
-              </section>
+              </section>}
             </div>
             {message && <p className="toast">{message}</p>}
           </section>
@@ -440,6 +466,45 @@ function Stat({ label, value }) {
     <div className="stat-item">
       <strong>{value}</strong>
       <span>{label}</span>
+    </div>
+  );
+}
+
+function UserRow({ currentUserId, user, onRoleChange, onPasswordReset, onDelete }) {
+  const [password, setPassword] = useState('');
+  const isCurrentUser = currentUserId === user.id;
+
+  return (
+    <div className="user-row manage-user-row">
+      <div>
+        <strong>{user.username}</strong>
+        <small>{isCurrentUser ? '当前登录账号' : '用户账号'}</small>
+      </div>
+      <select value={user.role} onChange={(event) => onRoleChange(event.target.value)}>
+        <option value="reader">普通用户</option>
+        <option value="editor">编辑</option>
+        <option value="admin">管理员</option>
+      </select>
+      <input
+        type="password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        placeholder="新密码"
+      />
+      <button
+        className="ghost-btn"
+        type="button"
+        onClick={() => {
+          if (!password) return;
+          onPasswordReset(password);
+          setPassword('');
+        }}
+      >
+        重置密码
+      </button>
+      <button className="danger-btn" type="button" onClick={onDelete} disabled={isCurrentUser}>
+        删除
+      </button>
     </div>
   );
 }

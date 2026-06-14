@@ -393,6 +393,28 @@ textarea:focus {
   background: var(--paper-2);
 }
 
+.manage-user-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 120px minmax(120px, 1fr) auto auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.manage-user-row strong,
+.manage-user-row small {
+  display: block;
+}
+
+.manage-user-row small {
+  margin-top: 3px;
+  color: var(--ink-3);
+}
+
+.manage-user-row select,
+.manage-user-row input {
+  min-height: 38px;
+}
+
 .toast {
   margin: 12px 0 0;
   color: var(--accent);
@@ -424,6 +446,11 @@ textarea:focus {
 
   .document-list {
     max-height: 230px;
+  }
+
+  .manage-user-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }
 
