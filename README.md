@@ -88,14 +88,16 @@ reader / reader123
 
 ## 数据位置
 
-运行后会自动生成本地数据和上传目录：
+运行后会自动生成本地数据库和上传目录：
 
 ```text
-data/app-db.json
+data/yueshengji.sqlite
 uploads/
 ```
 
-`data/app-db.json` 保存用户、阅读资源、打卡记录。`uploads/` 保存上传文件。
+`data/yueshengji.sqlite` 保存用户、阅读资源、打卡记录、上传记录。`uploads/` 保存上传文件。
+
+如果旧版本已经存在 `data/app-db.json`，系统第一次启动 SQLite 时会自动迁移旧数据。
 
 ## 构建与生产启动
 

@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "better-sqlite3": "^12.10.1",
     "next": "latest",
     "pdf-parse": "^2.4.5",
     "react": "latest",
