@@ -359,16 +359,36 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   gap: 10px;
+  align-items: center;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--paper-3);
 }
 
+.source-preview-head strong,
 .source-preview-head span {
+  display: block;
+}
+
+.source-preview-head span {
+  margin-top: 3px;
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--ink-2);
   font-size: 13px;
+}
+
+.source-preview-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.source-preview-actions .ghost-btn {
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .source-preview iframe,
@@ -378,6 +398,44 @@ button:disabled {
   display: block;
   border: 0;
   background: #fff;
+}
+
+.page-flip-stage {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #f5f1ea 0, #fff 9%, #fff 91%, #eee6dc 100%);
+  transform-origin: left center;
+  animation: page-flip-in 360ms ease both;
+}
+
+.page-flip-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.08));
+  opacity: 0;
+  animation: page-flip-shadow 360ms ease both;
+}
+
+@keyframes page-flip-in {
+  from {
+    transform: perspective(1200px) rotateY(-10deg);
+    opacity: 0.82;
+  }
+  to {
+    transform: perspective(1200px) rotateY(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes page-flip-shadow {
+  0% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 .admin-source-preview {

@@ -120,6 +120,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const selectedDocument = documents.find((document) => document.id === selectedDocumentId) || null;
   const selectedPages = normalizeDocumentPages(selectedDocument);
   const selectedPage = selectedPages.find((page) => page.id === selectedPageId) || selectedPages[0] || null;
+  const selectedPageIndex = selectedPage ? selectedPages.findIndex((page) => page.id === selectedPage.id) : -1;
   const visibleSegments = selectedPage?.blocks?.length ? selectedPage.blocks : selectedDocument?.segments || [];
   const selectedSegment = visibleSegments.find((segment) => segment.id === selectedSegmentId)
     || visibleSegments[0]
@@ -906,16 +907,56 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
                       {(previewUrl || previewError) && (
                         <section className="source-preview admin-source-preview">
                           <div className="source-preview-head">
-                            <strong>原文件预览</strong>
-                            {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer">打开原文件</a>}
+                            <div>
+                              <strong>原文件预览</strong>
+                              {selectedPage && <span>第 {selectedPage.pageNumber} / {selectedPages.length} 页</span>}
+                            </div>
+                            <div className="source-preview-actions">
+                              {previewUrl && previewType === 'application/pdf' && (
+                                <>
+                                  <button
+                                    className="ghost-btn"
+                                    type="button"
+                                    disabled={selectedPageIndex <= 0}
+                                    onClick={() => {
+                                      const previousPage = selectedPages[selectedPageIndex - 1];
+                                      if (!previousPage) return;
+                                      setSelectedPageId(previousPage.id);
+                                      setSelectedSegmentId(previousPage.blocks?.[0]?.id || '');
+                                    }}
+                                  >
+                                    上一页
+                                  </button>
+                                  <button
+                                    className="ghost-btn"
+                                    type="button"
+                                    disabled={selectedPageIndex < 0 || selectedPageIndex >= selectedPages.length - 1}
+                                    onClick={() => {
+                                      const nextPage = selectedPages[selectedPageIndex + 1];
+                                      if (!nextPage) return;
+                                      setSelectedPageId(nextPage.id);
+                                      setSelectedSegmentId(nextPage.blocks?.[0]?.id || '');
+                                    }}
+                                  >
+                                    下一页
+                                  </button>
+                                </>
+                              )}
+                              {previewUrl && <a href={previewUrl} target="_blank" rel="noreferrer">打开原文件</a>}
+                            </div>
                           </div>
                           {previewUrl && previewType === 'application/pdf' && (
-                            <object title="后台 PDF 预览" data={previewUrl} type="application/pdf">
-                              <p>当前浏览器无法内嵌预览 PDF，请打开原文件查看。</p>
-                            </object>
+                            <div className="page-flip-stage" key={`${selectedDocument.id}-${selectedPage?.id || 'page'}`}>
+                              <iframe
+                                title="后台 PDF 预览"
+                                src={`${previewUrl}#page=${selectedPage?.pageNumber || 1}&zoom=page-fit`}
+                              />
+                            </div>
                           )}
                           {previewUrl && previewType.startsWith('image/') && (
-                            <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
+                            <div className="page-flip-stage" key={`${selectedDocument.id}-image`}>
+                              <img src={previewUrl} alt={selectedDocument?.title || '原始图片'} />
+                            </div>
                           )}
                           {previewError && <p className="form-message">{previewError}</p>}
                         </section>
