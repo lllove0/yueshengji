@@ -290,7 +290,8 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
 
   async function uploadDocument(event) {
     event.preventDefault();
-    const file = event.currentTarget.file.files[0];
+    const form = event.currentTarget;
+    const file = form.file.files[0];
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
@@ -300,7 +301,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
       body: formData
     });
     setUploadTitle('');
-    event.currentTarget.reset();
+    form.reset();
     setMessage('上传完成，已生成阅读内容');
     setSelectedDocumentId(data.document.id);
     setSelectedSegmentId(data.document.segments[0]?.id || '');
