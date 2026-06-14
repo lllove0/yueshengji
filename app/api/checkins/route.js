@@ -9,7 +9,9 @@ export async function GET(request) {
   if (result.error) return result.error;
   const db = readDb();
   return Response.json({
-    checkins: db.checkins.filter((item) => item.userId === result.user.id)
+    checkins: result.user.role === 'admin'
+      ? db.checkins
+      : db.checkins.filter((item) => item.userId === result.user.id)
   });
 }
 

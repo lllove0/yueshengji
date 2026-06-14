@@ -177,6 +177,7 @@ button:disabled {
 }
 
 .tab-row .active,
+.admin-nav .active,
 .primary-btn {
   border-color: var(--accent);
   background: var(--accent);
@@ -204,6 +205,26 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.admin-nav a {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink-1);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .document-item {
@@ -365,6 +386,12 @@ button:disabled {
   gap: 12px;
 }
 
+.user-create-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
 input,
 select,
 textarea {
@@ -428,6 +455,35 @@ textarea:focus {
   min-height: 38px;
 }
 
+.data-table {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.data-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(180px, 1.5fr) minmax(90px, 0.7fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--paper-2);
+}
+
+.data-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.data-head {
+  background: var(--paper-3);
+  font-weight: 850;
+}
+
 .toast {
   margin: 12px 0 0;
   color: var(--accent);
@@ -462,7 +518,9 @@ textarea:focus {
     max-height: 230px;
   }
 
-  .manage-user-row {
+  .manage-user-row,
+  .user-create-form,
+  .data-row {
     grid-template-columns: 1fr;
     align-items: stretch;
   }

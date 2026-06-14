@@ -50,6 +50,14 @@ http://127.0.0.1:3000/
 http://127.0.0.1:3000/admin
 ```
 
+后台子页面：
+
+```text
+http://127.0.0.1:3000/admin/resources
+http://127.0.0.1:3000/admin/users
+http://127.0.0.1:3000/admin/checkins
+```
+
 同一 Wi-Fi 下手机访问：
 
 ```text

@@ -33,6 +33,12 @@ const visibilityLabel = {
   public: '公开'
 };
 
+const adminNav = [
+  { id: 'resources', label: '资源管理', href: '/admin/resources' },
+  { id: 'users', label: '用户管理', href: '/admin/users', adminOnly: true },
+  { id: 'checkins', label: '打卡记录', href: '/admin/checkins' }
+];
+
 const emptyEditor = {
   id: '',
   title: '',
@@ -46,7 +52,7 @@ const emptyEditor = {
   chunkSize: 260
 };
 
-export default function HomePage({ initialTab = 'reader' }) {
+export default function HomePage({ initialTab = 'reader', initialAdminSection = 'resources' }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' });
@@ -57,6 +63,7 @@ export default function HomePage({ initialTab = 'reader' }) {
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeAdminSection, setActiveAdminSection] = useState(initialAdminSection);
   const [editor, setEditor] = useState(emptyEditor);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'reader' });
   const [uploadTitle, setUploadTitle] = useState('');
@@ -85,6 +92,11 @@ export default function HomePage({ initialTab = 'reader' }) {
     ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(selectedDocument.segments.length, 1)) * 100)
     : 0;
   const needsReviewCount = documents.filter((document) => document.status === 'needs_review' || document.parseStatus === 'needs_review').length;
+  const checkinRows = checkins.map((item) => ({
+    ...item,
+    user: users.find((target) => target.id === item.userId) || (item.userId === user?.id ? user : null),
+    document: documents.find((target) => target.id === item.documentId) || null
+  }));
 
   useEffect(() => {
     const savedToken = localStorage.getItem('readerToken') || '';
@@ -98,6 +110,12 @@ export default function HomePage({ initialTab = 'reader' }) {
       setActiveTab('reader');
     }
   }, [user, canManage, activeTab]);
+
+  useEffect(() => {
+    if (!canAdmin && activeAdminSection === 'users') {
+      setActiveAdminSection('resources');
+    }
+  }, [canAdmin, activeAdminSection]);
 
   useEffect(() => {
     if (!selectedDocument) {
@@ -356,6 +374,20 @@ export default function HomePage({ initialTab = 'reader' }) {
             <button className={activeTab === 'reader' ? 'active' : ''} onClick={() => setActiveTab('reader')}>阅读器</button>
             {canManage && <button className={activeTab === 'admin' ? 'active' : ''} onClick={() => setActiveTab('admin')}>后台</button>}
           </div>
+          {activeTab === 'admin' && canManage && (
+            <nav className="admin-nav" aria-label="后台管理">
+              {adminNav.filter((item) => !item.adminOnly || canAdmin).map((item) => (
+                <a
+                  key={item.id}
+                  className={activeAdminSection === item.id ? 'active' : ''}
+                  href={item.href}
+                  onClick={() => setActiveAdminSection(item.id)}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          )}
           <button className="ghost-btn full" onClick={() => loadWorkspace()}>刷新</button>
           <div className="document-list">
             {documents.map((document) => {
@@ -439,55 +471,59 @@ export default function HomePage({ initialTab = 'reader' }) {
               <Stat label="打卡记录" value={checkins.length} />
               <Stat label="用户数量" value={canAdmin ? users.length : '-'} />
             </div>
-            <div className="admin-grid">
-              <section className="panel-card wide">
-                <h2>资源编辑</h2>
-                <form className="stack-form" onSubmit={saveDocument}>
-                  <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
-                  <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
-                    <option value="bilingual">中英文</option>
-                    <option value="zh">中文</option>
-                    <option value="en">英文</option>
-                  </select></label>
-                  <div className="form-grid">
-                    <label>分类<input value={editor.category} onChange={(event) => setEditor({ ...editor, category: event.target.value })} /></label>
-                    <label>状态<select value={editor.status} onChange={(event) => setEditor({ ...editor, status: event.target.value })}>
-                      <option value="published">已发布</option>
-                      <option value="draft">草稿</option>
-                      <option value="needs_review">待处理</option>
-                      <option value="archived">已归档</option>
+            {activeAdminSection === 'resources' && (
+              <div className="admin-grid">
+                <section className="panel-card wide">
+                  <h2>资源编辑</h2>
+                  <form className="stack-form" onSubmit={saveDocument}>
+                    <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
+                    <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
+                      <option value="bilingual">中英文</option>
+                      <option value="zh">中文</option>
+                      <option value="en">英文</option>
                     </select></label>
-                    <label>可见范围<select value={editor.visibility} onChange={(event) => setEditor({ ...editor, visibility: event.target.value })}>
-                      <option value="members">登录可见</option>
-                      <option value="private">私有</option>
-                      <option value="public">公开</option>
-                    </select></label>
-                    <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
-                  </div>
-                  <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
-                  <label>原文<textarea rows={11} value={editor.content} onChange={(event) => setEditor({ ...editor, content: event.target.value })} required /></label>
-                  <label>译文 / 注释<textarea rows={7} value={editor.translation} onChange={(event) => setEditor({ ...editor, translation: event.target.value })} /></label>
-                  <div className="button-row">
-                    <button className="primary-btn" type="submit">保存并生成打卡</button>
-                    <button className="ghost-btn" type="button" onClick={() => setEditor(emptyEditor)}>新建</button>
-                    <button className="danger-btn" type="button" onClick={deleteDocument}>删除</button>
-                  </div>
-                </form>
-              </section>
+                    <div className="form-grid">
+                      <label>分类<input value={editor.category} onChange={(event) => setEditor({ ...editor, category: event.target.value })} /></label>
+                      <label>状态<select value={editor.status} onChange={(event) => setEditor({ ...editor, status: event.target.value })}>
+                        <option value="published">已发布</option>
+                        <option value="draft">草稿</option>
+                        <option value="needs_review">待处理</option>
+                        <option value="archived">已归档</option>
+                      </select></label>
+                      <label>可见范围<select value={editor.visibility} onChange={(event) => setEditor({ ...editor, visibility: event.target.value })}>
+                        <option value="members">登录可见</option>
+                        <option value="private">私有</option>
+                        <option value="public">公开</option>
+                      </select></label>
+                      <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
+                    </div>
+                    <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
+                    <label>原文<textarea rows={11} value={editor.content} onChange={(event) => setEditor({ ...editor, content: event.target.value })} required /></label>
+                    <label>译文 / 注释<textarea rows={7} value={editor.translation} onChange={(event) => setEditor({ ...editor, translation: event.target.value })} /></label>
+                    <div className="button-row">
+                      <button className="primary-btn" type="submit">保存并生成打卡</button>
+                      <button className="ghost-btn" type="button" onClick={() => setEditor(emptyEditor)}>新建</button>
+                      <button className="danger-btn" type="button" onClick={deleteDocument}>删除</button>
+                    </div>
+                  </form>
+                </section>
 
+                <section className="panel-card">
+                  <h2>上传</h2>
+                  <form className="stack-form" onSubmit={uploadDocument}>
+                    <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
+                    <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
+                    <button className="primary-btn" type="submit">上传并生成</button>
+                  </form>
+                  <p className="form-message">TXT/MD 自动读取文本；PDF 和图片会保存文件并生成待处理资源，后续可接 PDF 解析或 OCR。</p>
+                </section>
+              </div>
+            )}
+
+            {activeAdminSection === 'users' && canAdmin && (
               <section className="panel-card">
-                <h2>上传</h2>
-                <form className="stack-form" onSubmit={uploadDocument}>
-                  <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
-                  <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
-                  <button className="primary-btn" type="submit">上传并生成</button>
-                </form>
-                <p className="form-message">TXT/MD 自动读取文本；PDF 和图片会保存文件并生成待处理资源，后续可接 PDF 解析或 OCR。</p>
-              </section>
-
-              {canAdmin && <section className="panel-card">
                 <h2>用户管理</h2>
-                <form className="stack-form" onSubmit={createUser}>
+                <form className="stack-form user-create-form" onSubmit={createUser}>
                   <label>用户名<input value={newUser.username} onChange={(event) => setNewUser({ ...newUser, username: event.target.value })} required /></label>
                   <label>密码<input type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} required /></label>
                   <label>角色<select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>
@@ -509,8 +545,33 @@ export default function HomePage({ initialTab = 'reader' }) {
                     />
                   ))}
                 </div>
-              </section>}
-            </div>
+              </section>
+            )}
+
+            {activeAdminSection === 'checkins' && (
+              <section className="panel-card">
+                <h2>打卡记录</h2>
+                <div className="data-table">
+                  <div className="data-row data-head">
+                    <span>用户</span>
+                    <span>资源</span>
+                    <span>段落</span>
+                    <span>日期</span>
+                    <span>时间</span>
+                  </div>
+                  {checkinRows.map((item) => (
+                    <div className="data-row" key={item.id}>
+                      <span>{item.user?.username || '未知用户'}</span>
+                      <span>{item.document?.title || '已删除资源'}</span>
+                      <span>{item.segmentId}</span>
+                      <span>{item.date}</span>
+                      <span>{formatDateTime(item.createdAt)}</span>
+                    </div>
+                  ))}
+                  {!checkinRows.length && <p className="placeholder">暂无打卡记录</p>}
+                </div>
+              </section>
+            )}
             {message && <p className="toast">{message}</p>}
           </section>
         )}
@@ -572,6 +633,16 @@ function todayKey(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function calculateStreak(checkins) {
