@@ -71,7 +71,7 @@ const emptyEditor = {
   chunkSize: 260
 };
 
-export default function HomePage({ initialTab = 'reader', initialAdminSection = 'resources' }) {
+export default function HomePage({ initialTab = 'reader', initialAdminSection = 'resources', lockedMode = 'reader' }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState(null);
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' });
@@ -82,7 +82,7 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
   const [selectedPageId, setSelectedPageId] = useState('');
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(lockedMode || initialTab);
   const [activeAdminSection, setActiveAdminSection] = useState(initialAdminSection);
   const [editor, setEditor] = useState(emptyEditor);
   const [newUser, setNewUser] = useState({
@@ -157,10 +157,10 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
   }, []);
 
   useEffect(() => {
-    if (user && !canManage && activeTab === 'admin') {
+    if (user && !canManage && activeTab === 'admin' && !lockedMode) {
       setActiveTab('reader');
     }
-  }, [user, canManage, activeTab]);
+  }, [user, canManage, activeTab, lockedMode]);
 
   useEffect(() => {
     if (!canAdmin && activeAdminSection === 'users') {
@@ -476,23 +476,25 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
     <main className="app-frame">
       <header className="topbar">
         <div>
-          <h1>阅声记</h1>
-          <p>中英文阅读与语音打卡系统</p>
+          <h1>{lockedMode === 'admin' ? '阅声记后台' : '阅声记'}</h1>
+          <p>{lockedMode === 'admin' ? '资源、用户与打卡管理' : '中英文阅读与语音打卡系统'}</p>
         </div>
         <div className="topbar-actions">
           <span>{user.username} · {roleLabel[user.role] || user.role}</span>
-          <a className="ghost-link" href="/">阅读器</a>
-          {canManage && <a className="ghost-link" href="/admin">管理后台</a>}
+          <a className="ghost-link" href="/">前台阅读</a>
+          {canManage && <a className="ghost-link" href="/admin">后台管理</a>}
           <button className="ghost-btn" onClick={logout}>退出</button>
         </div>
       </header>
 
       <div className="workspace">
         <aside className="sidebar">
-          <div className="tab-row">
-            <button className={activeTab === 'reader' ? 'active' : ''} onClick={() => setActiveTab('reader')}>阅读器</button>
-            {canManage && <button className={activeTab === 'admin' ? 'active' : ''} onClick={() => setActiveTab('admin')}>后台</button>}
-          </div>
+          {!lockedMode && (
+            <div className="tab-row">
+              <button className={activeTab === 'reader' ? 'active' : ''} onClick={() => setActiveTab('reader')}>阅读器</button>
+              {canManage && <button className={activeTab === 'admin' ? 'active' : ''} onClick={() => setActiveTab('admin')}>后台</button>}
+            </div>
+          )}
           {activeTab === 'admin' && canManage && (
             <nav className="admin-nav" aria-label="后台管理">
               {adminNav.filter((item) => !item.adminOnly || canAdmin).map((item) => (

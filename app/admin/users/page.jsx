@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function AdminUsersPage() {
-  return <HomePage initialTab="admin" initialAdminSection="users" />;
+  return <HomePage initialTab="admin" initialAdminSection="users" lockedMode="admin" />;
 }

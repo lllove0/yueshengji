@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default function AdminCheckinsPage() {
-  return <HomePage initialTab="admin" initialAdminSection="checkins" />;
+  return <HomePage initialTab="admin" initialAdminSection="checkins" lockedMode="admin" />;
 }
