@@ -605,7 +605,6 @@ export default function HomePage({ initialTab = 'reader', initialAdminSection = 
               ))}
             </nav>
           )}
-          <button className="ghost-btn full" onClick={() => loadWorkspace()}>刷新</button>
           <div className="document-list">
             {documents.map((document) => {
               const checked = checkedSegmentIds.get(document.id)?.size || 0;
