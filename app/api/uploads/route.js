@@ -21,8 +21,9 @@ export async function POST(request) {
   const ext = path.extname(originalName).toLowerCase();
   const isText = file.type.startsWith('text/') || ['.txt', '.md'].includes(ext);
   const isPdf = file.type === 'application/pdf' || ext === '.pdf';
-  if (!isText && !isPdf) {
-    return Response.json({ error: '只支持 TXT、MD 或 PDF' }, { status: 400 });
+  const isImage = file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+  if (!isText && !isPdf && !isImage) {
+    return Response.json({ error: '只支持 TXT、MD、PDF 或图片文件' }, { status: 400 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -30,14 +31,23 @@ export async function POST(request) {
   fs.writeFileSync(target.absolute, buffer);
 
   const db = readDb();
+  const sourceType = isText ? 'text' : isPdf ? 'pdf' : 'image';
+  const content = isText
+    ? buffer.toString('utf8')
+    : isPdf
+      ? `PDF 文件已上传：${originalName}\n\n请在后台编辑原文，或后续接入 PDF 解析库自动抽取文字。`
+      : `图片文件已上传：${originalName}\n\n请在后台编辑识别后的文字，或后续接入 OCR 自动识别图片内容。`;
   const document = createDocumentRecord({
     title: title || originalName.replace(/\.[^.]+$/, ''),
     language: 'bilingual',
-    content: isText
-      ? buffer.toString('utf8')
-      : `PDF 文件已上传：${originalName}\n\n请在后台编辑原文，或后续接入 PDF 解析库自动抽取文字。`,
+    content,
     translation: '',
-    sourceType: isText ? 'text' : 'pdf',
+    category: sourceType === 'image' ? '图片阅读' : '导入资源',
+    description: isText ? '' : '已保存原始文件，等待自动解析或人工编辑。',
+    status: isText ? 'published' : 'needs_review',
+    visibility: 'members',
+    sourceType,
+    parseStatus: isText ? 'parsed' : 'needs_review',
     fileName: originalName,
     filePath: target.relative,
     ownerId: result.user.id
@@ -49,6 +59,8 @@ export async function POST(request) {
     fileName: originalName,
     filePath: target.relative,
     mimeType: file.type || 'application/octet-stream',
+    sourceType,
+    parseStatus: isText ? 'parsed' : 'needs_review',
     uploadedBy: result.user.id,
     createdAt: new Date().toISOString()
   });

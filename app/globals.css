@@ -323,6 +323,13 @@ button:disabled {
   padding: 14px;
 }
 
+.admin-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: minmax(320px, 1.3fr) minmax(280px, 0.9fr);
@@ -350,6 +357,12 @@ button:disabled {
   color: var(--ink-2);
   font-size: 13px;
   font-weight: 800;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 input,
@@ -434,7 +447,8 @@ textarea:focus {
   }
 
   .workspace,
-  .admin-grid {
+  .admin-grid,
+  .admin-summary {
     grid-template-columns: 1fr;
   }
 
@@ -466,6 +480,10 @@ textarea:focus {
   }
 
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }

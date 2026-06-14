@@ -14,10 +14,33 @@ const languageLabel = {
   en: '英文'
 };
 
+const sourceTypeLabel = {
+  text: '文本',
+  pdf: 'PDF',
+  image: '图片'
+};
+
+const statusLabel = {
+  draft: '草稿',
+  published: '已发布',
+  needs_review: '待处理',
+  archived: '已归档'
+};
+
+const visibilityLabel = {
+  private: '私有',
+  members: '登录可见',
+  public: '公开'
+};
+
 const emptyEditor = {
   id: '',
   title: '',
   language: 'bilingual',
+  category: '未分类',
+  description: '',
+  status: 'published',
+  visibility: 'members',
   content: '',
   translation: '',
   chunkSize: 260
@@ -61,6 +84,7 @@ export default function HomePage({ initialTab = 'reader' }) {
   const progress = selectedDocument
     ? Math.round(((checkedSegmentIds.get(selectedDocument.id)?.size || 0) / Math.max(selectedDocument.segments.length, 1)) * 100)
     : 0;
+  const needsReviewCount = documents.filter((document) => document.status === 'needs_review' || document.parseStatus === 'needs_review').length;
 
   useEffect(() => {
     const savedToken = localStorage.getItem('readerToken') || '';
@@ -84,6 +108,10 @@ export default function HomePage({ initialTab = 'reader' }) {
       id: selectedDocument.id,
       title: selectedDocument.title,
       language: selectedDocument.language,
+      category: selectedDocument.category || '未分类',
+      description: selectedDocument.description || '',
+      status: selectedDocument.status || 'published',
+      visibility: selectedDocument.visibility || 'members',
       content: selectedDocument.content,
       translation: selectedDocument.translation || '',
       chunkSize: selectedDocument.chunkSize || 260
@@ -171,6 +199,10 @@ export default function HomePage({ initialTab = 'reader' }) {
       body: {
         title: editor.title,
         language: editor.language,
+        category: editor.category,
+        description: editor.description,
+        status: editor.status,
+        visibility: editor.visibility,
         content: editor.content,
         translation: editor.translation,
         chunkSize: Number(editor.chunkSize) || 260
@@ -340,7 +372,8 @@ export default function HomePage({ initialTab = 'reader' }) {
                   }}
                 >
                   <strong>{document.title}</strong>
-                  <small>{languageLabel[document.language]} · {document.segments.length} 段 · {percent}%</small>
+                  <small>{sourceTypeLabel[document.sourceType] || '资源'} · {statusLabel[document.status] || '已发布'} · {percent}%</small>
+                  <small>{languageLabel[document.language]} · {document.category || '未分类'} · {document.segments.length} 段</small>
                 </button>
               );
             })}
@@ -352,7 +385,11 @@ export default function HomePage({ initialTab = 'reader' }) {
             <div className="reader-head">
               <div>
                 <h2>{selectedDocument?.title || '选择一篇内容'}</h2>
-                <p>{selectedDocument ? `${languageLabel[selectedDocument.language]} · ${selectedDocument.segments.length} 个打卡段落` : '上传文本或在后台创建内容后开始阅读'}</p>
+                <p>
+                  {selectedDocument
+                    ? `${languageLabel[selectedDocument.language]} · ${sourceTypeLabel[selectedDocument.sourceType] || '资源'} · ${statusLabel[selectedDocument.status] || '已发布'} · ${visibilityLabel[selectedDocument.visibility] || '登录可见'} · ${selectedDocument.segments.length} 个打卡段落`
+                    : '上传文本、PDF 或图片，或在后台创建内容后开始阅读'}
+                </p>
               </div>
               <div className="button-row">
                 <button className="ghost-btn" onClick={toggleReading}>{audioStatus === 'playing' ? '暂停' : audioStatus === 'paused' ? '继续' : '朗读'}</button>
@@ -396,9 +433,15 @@ export default function HomePage({ initialTab = 'reader' }) {
 
         {activeTab === 'admin' && canManage && (
           <section className="admin-panel">
+            <div className="admin-summary">
+              <Stat label="资源总数" value={documents.length} />
+              <Stat label="待处理" value={needsReviewCount} />
+              <Stat label="打卡记录" value={checkins.length} />
+              <Stat label="用户数量" value={canAdmin ? users.length : '-'} />
+            </div>
             <div className="admin-grid">
               <section className="panel-card wide">
-                <h2>内容编辑</h2>
+                <h2>资源编辑</h2>
                 <form className="stack-form" onSubmit={saveDocument}>
                   <label>标题<input value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} required /></label>
                   <label>语言<select value={editor.language} onChange={(event) => setEditor({ ...editor, language: event.target.value })}>
@@ -406,9 +449,24 @@ export default function HomePage({ initialTab = 'reader' }) {
                     <option value="zh">中文</option>
                     <option value="en">英文</option>
                   </select></label>
+                  <div className="form-grid">
+                    <label>分类<input value={editor.category} onChange={(event) => setEditor({ ...editor, category: event.target.value })} /></label>
+                    <label>状态<select value={editor.status} onChange={(event) => setEditor({ ...editor, status: event.target.value })}>
+                      <option value="published">已发布</option>
+                      <option value="draft">草稿</option>
+                      <option value="needs_review">待处理</option>
+                      <option value="archived">已归档</option>
+                    </select></label>
+                    <label>可见范围<select value={editor.visibility} onChange={(event) => setEditor({ ...editor, visibility: event.target.value })}>
+                      <option value="members">登录可见</option>
+                      <option value="private">私有</option>
+                      <option value="public">公开</option>
+                    </select></label>
+                    <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
+                  </div>
+                  <label>资源说明<input value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} placeholder="例如来源、适读年级、课程说明" /></label>
                   <label>原文<textarea rows={11} value={editor.content} onChange={(event) => setEditor({ ...editor, content: event.target.value })} required /></label>
                   <label>译文 / 注释<textarea rows={7} value={editor.translation} onChange={(event) => setEditor({ ...editor, translation: event.target.value })} /></label>
-                  <label>每段字数<input type="number" min="80" max="2000" value={editor.chunkSize} onChange={(event) => setEditor({ ...editor, chunkSize: event.target.value })} /></label>
                   <div className="button-row">
                     <button className="primary-btn" type="submit">保存并生成打卡</button>
                     <button className="ghost-btn" type="button" onClick={() => setEditor(emptyEditor)}>新建</button>
@@ -420,11 +478,11 @@ export default function HomePage({ initialTab = 'reader' }) {
               <section className="panel-card">
                 <h2>上传</h2>
                 <form className="stack-form" onSubmit={uploadDocument}>
-                  <label>TXT / MD / PDF<input name="file" type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" /></label>
+                  <label>文件<input name="file" type="file" accept=".txt,.md,.pdf,.jpg,.jpeg,.png,.webp,image/*,text/plain,application/pdf" /></label>
                   <label>标题<input value={uploadTitle} onChange={(event) => setUploadTitle(event.target.value)} placeholder="留空使用文件名" /></label>
                   <button className="primary-btn" type="submit">上传并生成</button>
                 </form>
-                <p className="form-message">TXT/MD 自动读取文本；PDF 会保存文件并生成待编辑记录，后续可接 PDF 解析库。</p>
+                <p className="form-message">TXT/MD 自动读取文本；PDF 和图片会保存文件并生成待处理资源，后续可接 PDF 解析或 OCR。</p>
               </section>
 
               {canAdmin && <section className="panel-card">
